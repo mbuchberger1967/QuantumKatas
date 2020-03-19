@@ -113,6 +113,7 @@ namespace Quantum.Kata.PhaseEstimation {
         ResetQubitCount();
 
         let actual = TwoBitPE(U, P);
+        Message($"Measuring for ({U}, {P})...");
         EqualityWithinToleranceFact(actual, expected, 0.001);
         
         let nq = GetMaxQubitCount();

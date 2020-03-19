@@ -8,6 +8,8 @@ namespace Quantum.Kata.GroversAlgorithm {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Math;
+    open Microsoft.Quantum.Arrays;
+    open Microsoft.Quantum.Measurement;
     
     
     //////////////////////////////////////////////////////////////////
@@ -49,7 +51,11 @@ namespace Quantum.Kata.GroversAlgorithm {
     // Stretch goal: Can you implement the oracle so that it would work
     //               for queryRegister containing an arbitrary number of qubits?
     operation Oracle_And (queryRegister : Qubit[], target : Qubit) : Unit is Adj {        
-        // ...
+        // for 2 bits
+//        CCNOT(queryRegister[0], queryRegister[1], target);
+
+        // for any number of bits
+        Controlled X(queryRegister, target);
     }
 
 
@@ -64,7 +70,23 @@ namespace Quantum.Kata.GroversAlgorithm {
     // Stretch goal: Can you implement the oracle so that it would work
     //               for queryRegister containing an arbitrary number of qubits?
     operation Oracle_Or (queryRegister : Qubit[], target : Qubit) : Unit is Adj {        
-        // ...
+        // x₀ ∨ x₁ = ¬ (¬x₀ ∧ ¬x₁)
+
+//        within {
+//            X(queryRegister[0]);
+//            X(queryRegister[1]);
+//        }
+//        apply {
+//            CCNOT(queryRegister[0], queryRegister[1], target);
+//        }
+        // Then flip target again to get negation
+//        X(target);
+
+        // for any number of bits
+        // First, flip target if both qubits are in |0⟩ state
+        (ControlledOnInt(0, X))(queryRegister, target);
+        // Then flip target again to get negation
+        X(target);
     }
 
 
@@ -79,7 +101,13 @@ namespace Quantum.Kata.GroversAlgorithm {
     // Stretch goal: Can you implement the oracle so that it would work
     //               for queryRegister containing an arbitrary number of qubits?
     operation Oracle_Xor (queryRegister : Qubit[], target : Qubit) : Unit is Adj {        
-        // ...
+        // for two bits
+//        CNOT(queryRegister[0], target);
+//        CNOT(queryRegister[1], target);
+
+        // any number of bits
+        ApplyToEachA(CNOT(_, target), queryRegister);
+
     }
 
 
@@ -95,7 +123,37 @@ namespace Quantum.Kata.GroversAlgorithm {
     // It is possible (and quite straightforward) to implement this oracle based on this observation; 
     // however, for the purposes of learning to write oracles to solve SAT problems we recommend using the representation above.
     operation Oracle_AlternatingBits (queryRegister : Qubit[], target : Qubit) : Unit is Adj {        
-        // ...
+        let length = Length(queryRegister)-1;
+
+//        using (ancilla = Qubit[length]) {
+//            for (i in 0..length-1) {
+//                CNOT(queryRegister[i], ancilla[i]);
+//                CNOT(queryRegister[i+1], ancilla[i]);
+//            }
+
+//            Controlled X(ancilla, target);
+
+            // reset ancilla
+//            for (i in 0..length-1) {
+//                Adjoint CNOT(queryRegister[i], ancilla[i]);
+//                Adjoint CNOT(queryRegister[i+1], ancilla[i]);
+//            }
+//        }
+
+        // Alternative
+        using (ancilla = Qubit[length]) {
+            for (i in 0..length-1) {
+                Oracle_Xor(queryRegister[i..i+1], ancilla[i]);
+            }
+
+            Controlled X(ancilla, target);
+
+            // reset ancilla
+            for (i in 0..length-1) {
+                Adjoint Oracle_Xor(queryRegister[i..i+1], ancilla[i]);
+            }
+        }
+
     }
 
 
@@ -123,9 +181,47 @@ namespace Quantum.Kata.GroversAlgorithm {
     operation Oracle_SATClause (queryRegister : Qubit[], 
                                 target : Qubit, 
                                 clause : (Int, Bool)[]) : Unit is Adj {        
-        // ...
+
+        let (clauseQubits, flip) = ExtractClauseQubits(queryRegister, clause);
+
+        // flip all bits for flip[i]==true
+//        for ( i in 0..Length(clauseQubits)-1){
+//            if (flip[i]) {
+//                X(clauseQubits[i]);
+//            }
+//        }
+        
+//        Oracle_Or(clauseQubits, target);
+
+//        for ( i in 0..Length(clauseQubits)-1){
+//            if (flip[i]) {
+//                Adjoint X(clauseQubits[i]);
+//            }
+//        }
+
+        within {
+            // flip all bits for flip[i]==true, and undo after oracle
+            ApplyPauliFromBitString(PauliX, true, flip, clauseQubits);
+        }
+        apply {
+            Oracle_Or(clauseQubits, target);
+        }
     }
 
+    // returns all qubits and the flip (bit) information for wich clause has an index
+    function ExtractClauseQubits(queryRegister : Qubit[], clause : (Int, Bool)[]) : (Qubit[], Bool[]) {
+
+        mutable clauseQubits = new Qubit[Length(clause)];
+        mutable flips = new Bool[Length(clause)];
+        for (i in 0..Length(clause)-1) {
+            let (index, isTrue) = clause[i];
+
+            set clauseQubits w/= i <- queryRegister[index];
+            set flips w/= i <- not isTrue;
+        }
+        
+        return (clauseQubits, flips);
+    }
 
     // Task 1.6. General SAT problem oracle
     //
@@ -151,8 +247,21 @@ namespace Quantum.Kata.GroversAlgorithm {
     //       Leave the query register in the same state it started in.
     operation Oracle_SAT (queryRegister : Qubit[], 
                           target : Qubit, 
-                          problem : (Int, Bool)[][]) : Unit is Adj {        
-        // ...
+                          problem : (Int, Bool)[][]) : Unit is Adj {      
+
+        using (ancillaRegister = Qubit[Length(problem)]) {
+
+            within {
+                // evaluate all or clauses and store the result in the ancilla register
+                for (i in 0..Length(problem)-1) {
+                    Oracle_SATClause(queryRegister, ancillaRegister[i], problem[i]);
+                }
+            }
+            apply {
+                // if all ancilla bits are true -> AND processes to true so flip the target bit
+                Controlled X(ancillaRegister, target);
+            }
+        }
     }
 
 
@@ -176,9 +285,20 @@ namespace Quantum.Kata.GroversAlgorithm {
     // Stretch goal: Can you implement the oracle so that it would work
     //               for queryRegister containing an arbitrary number of qubits?
     operation Oracle_Exactly1One (queryRegister : Qubit[], target : Qubit) : Unit is Adj {
-        // ...
-    }
+        // for 3 qubits
+        // for even number of 1s X results in 0, for odd number results in 1
+//        ApplyToEachA(CNOT(_, target), queryRegister);
+        // |111> has also an odd number, so cancel this out
+//        Controlled X(queryRegister, target);
 
+        // for any number of qubits
+        // bits = 00..0
+        mutable bits = new Bool[Length(queryRegister)];
+        for (i in 0..Length(queryRegister)-1) {
+            // create all bit strings with exactly 1 bit set to true and perfomr a controlled X
+            (ControlledOnBitString(bits w/ i <- true, X))(queryRegister, target);
+        }
+    }
 
     // Task 2.2. "Exactly-1 3-SAT" oracle
     // Inputs:
@@ -200,8 +320,36 @@ namespace Quantum.Kata.GroversAlgorithm {
                                     target : Qubit, 
                                     problem : (Int, Bool)[][]) : Unit is Adj {        
         // Hint: can you reuse parts of the code in section 1?
-        // ...
+        using (ancillaRegister = Qubit[Length(problem)]) {
+
+            within {
+                // evaluate all or clauses and store the result in the ancilla register
+                for (i in 0..Length(problem)-1) {
+                    Oracle_Exactly1_3SATClause(queryRegister, ancillaRegister[i], problem[i]);
+                }
+            }
+            apply {
+                // if all ancilla bits are true -> AND processes to true so flip the target bit
+                Controlled X(ancillaRegister, target);
+            }
+        }
     }
+
+    operation Oracle_Exactly1_3SATClause (queryRegister : Qubit[], 
+                                target : Qubit, 
+                                clause : (Int, Bool)[]) : Unit is Adj {        
+
+        let (clauseQubits, flip) = ExtractClauseQubits(queryRegister, clause);
+
+        within {
+            // flip all bits for flip[i]==true, and undo after oracle
+            ApplyPauliFromBitString(PauliX, true, flip, clauseQubits);
+        }
+        apply {
+            Oracle_Exactly1One(clauseQubits, target);
+        }
+    }
+
 
 
     //////////////////////////////////////////////////////////////////
@@ -222,9 +370,97 @@ namespace Quantum.Kata.GroversAlgorithm {
         // - the alternating bits oracle from task 1.4 has exactly two solutions,
         // - the OR oracle from task 1.2 for 2 qubits has exactly 3 solutions, and so on.
 
-        // ...
+        let n=4;
+        let N=PowI(2,n);
+        let GroverIterationMax = Ceiling(PI()/4.0*Sqrt(IntAsDouble(N)))+1;
+
+        Message("Evaluating Grover with Oracle_And");
+        for (iteration in 1..GroverIterationMax) {
+            let (answer, prob) = EvaluateGroverResult(Oracle_And, iteration, n);
+            Message($"grover iterations: {iteration}   answer: {answer}   success with {prob}%");
+        }
+
+        Message("Evaluating Grover with Oracle_Or");
+        for (iteration in 1..GroverIterationMax) {
+            let (answer, prob) = EvaluateGroverResult(Oracle_Or, iteration, n);
+            Message($"grover iterations: {iteration}   answer: {answer}   success with {prob}%");
+        }
+        Message("Evaluating Grover with Oracle_Xor");
+        for (iteration in 1..GroverIterationMax) {
+            let (answer, prob) = EvaluateGroverResult(Oracle_Xor, iteration, n);
+            Message($"grover iterations: {iteration}   answer: {answer}   success with {prob}%");
+        }
+        Message("Evaluating Grover with Oracle_AlternatingBits");
+        for (iteration in 1..GroverIterationMax) {
+            let (answer, prob) = EvaluateGroverResult(Oracle_AlternatingBits, iteration, n);
+            Message($"grover iterations: {iteration}   answer: {answer}   success with {prob}%");
+        }
+    }
+
+    operation EvaluateGroverResult(oracle : ((Qubit[], Qubit) => Unit is Adj), iterations : Int, n : Int) : (Bool[] , Int) {
+        
+        let N=PowI(2,n);
+        mutable correct = 0;
+        mutable answer = new Bool[N];
+
+        // 100 passes
+        for (i in 1..100 ) {
+            using ((register, output) = (Qubit[n],Qubit())) {
+                GroversAlgorithm(register, oracle, iterations);
+
+                let res = MultiM(register);
+                // to check whether the result is correct, apply the oracle to the register plus ancilla after measurement
+                oracle(register, output);
+                if (MResetZ(output) == One) {
+                    set correct += 1;
+                    set answer = ResultArrayAsBoolArray(res);
+                }
+                ResetAll(register);
+            }
+        }
+        
+        return (answer, correct);
     }
     
+    operation OracleConverterImpl(markingOracle : ((Qubit[], Qubit) => Unit is Adj), register : Qubit[]) : Unit is Adj {
+
+        using (target = Qubit()) {
+            // bring target in state |->
+            X(target);
+            H(target);
+
+            // Apply the marking oracle; since the target is in the |-⟩ state,
+            // flipping the target if the register satisfies the oracle condition will apply a -1 factor to the state
+            markingOracle(register, target);
+
+            // reset target before relasing
+            H(target);
+            X(target);
+        }
+    }
+
+    function OracleConverter(markingOracle : ((Qubit[], Qubit) => Unit is Adj)) : ((Qubit[]) => Unit is Adj) {
+        return OracleConverterImpl(markingOracle, _);
+    }
+
+    operation GroversAlgorithm (register : Qubit[], oracle : ((Qubit[], Qubit) => Unit is Adj), iterations : Int) : Unit {
+
+        // convert markingOracle to phaseOracle
+        let phaseOracle = OracleConverter(oracle);
+
+        // bring register in equal superposition
+        ApplyToEachA(H, register);
+
+        for (i in 1 .. iterations) {
+            phaseOracle(register);
+            ApplyToEachA(H, register);
+            ApplyToEachA(X, register);
+            Controlled Z(Most(register), Tail(register));
+            ApplyToEachA(X, register);
+            ApplyToEachA(H, register);
+        }
+    }
+
 
     // Task 3.2. Universal implementation of Grover's algorithm
     // Inputs: 
@@ -239,7 +475,37 @@ namespace Quantum.Kata.GroversAlgorithm {
     // (the number that minimized the probability of such failure). 
     // In this task you also need to make your implementation robust to not knowing the optimal number of iterations.
     operation UniversalGroversAlgorithm (N : Int, oracle : ((Qubit[], Qubit) => Unit is Adj)) : Bool[] {
-        // ...
-        return new Bool[N];
+        // In this task you don't know the optimal number of iterations upfront, 
+        // so it makes sense to try different numbers of iterations.
+        // This way, even if you don't hit the "correct" number of iterations on one of your tries,
+        // you'll eventually get a high enough success probability.
+
+        // This solution tries numbers of iterations that are powers of 2;
+        // this is not the only valid solution, since a lot of sequences will eventually yield the answer.
+        mutable answer = new Bool[N];
+        using ((register, output) = (Qubit[N], Qubit())) {
+            mutable correct = false;
+            mutable iter = 1;
+            repeat {
+                Message($"Trying search with {iter} iterations");
+                GroversAlgorithm_Loop(register, oracle, iter);
+                let res = MultiM(register);
+                // to check whether the result is correct, apply the oracle to the register plus ancilla after measurement
+                oracle(register, output);
+                if (MResetZ(output) == One) {
+                    set correct = true;
+                    set answer = ResultArrayAsBoolArray(res);
+                }
+                ResetAll(register);
+            } until (correct or iter > 100)  // the fail-safe to avoid going into an infinite loop
+            fixup {
+                set iter *= 2;
+            }
+            if (not correct) {
+                fail "Failed to find an answer";
+            }
+        }
+        Message($"{answer}");
+        return answer;
     }
 }

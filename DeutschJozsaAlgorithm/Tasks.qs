@@ -6,6 +6,8 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Canon;
+    open Microsoft.Quantum.Arrays;
+    open Microsoft.Quantum.Convert;
     
     
     //////////////////////////////////////////////////////////////////
@@ -58,7 +60,7 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
         // Since f(x) = 1 for all values of x, |y ⊕ f(x)⟩ = |y ⊕ 1⟩ = |NOT y⟩.
         // This means that the operation needs to flip qubit y (i.e. transform |0⟩ to |1⟩ and vice versa).
 
-        // ...
+        X(y);
     }
     
     
@@ -73,7 +75,7 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
         // You don't need to modify it. Feel free to remove it, this won't cause your code to fail.
         EqualityFactB(0 <= k and k < Length(x), true, "k should be between 0 and N-1, inclusive");
 
-        // ...
+        CNOT(x[k], y);
     }
     
     
@@ -85,7 +87,9 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
     operation Oracle_OddNumberOfOnes (x : Qubit[], y : Qubit) : Unit {
         // Hint: f(x) can be represented as x_0 ⊕ x_1 ⊕ ... ⊕ x_(N-1)
 
-        // ...
+        for (q in x) {
+            CNOT(q, y);
+        }
     }
     
     
@@ -103,7 +107,11 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
         // You don't need to modify it. Feel free to remove it, this won't cause your code to fail.
         EqualityFactI(Length(x), Length(r), "Arrays should have the same length");
 
-        // ...
+        for (i in 0..Length(x)-1) {
+            if (r[i]==1) {
+                CNOT(x[i], y);
+            }
+        }
     }
     
     
@@ -119,7 +127,17 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
         // You don't need to modify it. Feel free to remove it, this won't cause your code to fail.
         EqualityFactI(Length(x), Length(r), "Arrays should have the same length");
 
-        // ...
+        for (i in 0..Length(x)-1) {
+            if (r[i]==1) {
+                CNOT(x[i], y);
+            }
+            else {
+                // do a 0-controlled NOT
+                X(x[i]);
+                CNOT(x[i], y);
+                X(x[i]);
+            }
+        }
     }
     
     
@@ -140,12 +158,32 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
 
         // Hint: the first part of the function is the same as in task 1.4
 
-        // ...
+        for (q in x) {
+            CNOT(q, y);
+        }
+
 
         // Hint: you can use Controlled functor to perform multicontrolled gates
         // (gates with multiple control qubits).
 
-        // ...
+        let p = Length(prefix);
+
+        // id prefix[i] == 0 do a 0-controlled operation
+        for (i in 0..p-1) {
+            if (prefix[i] == 0) {
+                X(x[i]);
+            }
+        }
+        
+        Controlled X(x[0..p-1], y);
+
+        // undo
+        for (i in 0..p-1) {
+            if (prefix[i] == 0) {
+                X(x[i]);
+            }
+        }
+
     }
     
     
@@ -161,7 +199,12 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
 
         // Hint: represent f(x) in terms of AND and ⊕ operations
 
-        // ...
+        // f(x) can be represented in terms of AND and ⊕ operations as follows:
+        // f(x) = (x₀ AND x₁) ⊕ (x₀ AND x₂) ⊕ (x₁ AND x₂)
+        CCNOT(x[0], x[1], y);
+        CCNOT(x[0], x[2], y);
+        CCNOT(x[1], x[2], y);
+        
     }
     
     
@@ -179,7 +222,9 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
     //      2) create |-⟩ state (|-⟩ = (|0⟩ - |1⟩) / sqrt(2)) on answer register
     operation BV_StatePrep (query : Qubit[], answer : Qubit) : Unit
     is Adj {
-            // ...
+            ApplyToEachA(H, query);
+            X(answer);
+            H(answer);
     }
     
     
@@ -203,7 +248,19 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
         // the variable has to be mutable to allow updating it.
         mutable r = new Int[N];
         
-        // ...
+        using ((query, answer) = (Qubit[N], Qubit())) {
+            BV_StatePrep(query, answer);
+            Uf(query, answer);
+            Adjoint BV_StatePrep(query, answer);
+
+            let result = Measure(ConstantArray(N, PauliZ), query);
+
+            for (i in 0..N-1) {
+                set r w/= i <- ResultArrayAsInt([M(query[i])]);
+            }
+           
+           ResetAll(query);
+        }
 
         return r;
     }
@@ -228,7 +285,14 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
 
         // BV_Test appears in the list of unit tests for the solution; run it to verify your code.
 
-        // ...
+        let N=4;
+        let bits=[1,1,0,1];
+
+        let secret = BV_Algorithm(N, Oracle_ProductFunction(_, _, bits));
+
+        AllEqualityFactI(secret, bits, $"returned bit string {secret} dosent match {bits}!");
+
+        Message($"secret bit string is {secret}");
     }
     
     
@@ -261,8 +325,14 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
         // than Bernstein-Vazirani (i.e. functions which can not be represented as a scalar product, such as f(x) = 1),
         // it can be expressed as running Bernstein-Vazirani algorithm
         // and then post-processing the return value classically.
+
+        // for f(x) = 0 -> result is |0>, for f(x)=1 -> result = -|0>
+        // so measurement is Zero
         
-        // ...
+        let result = BV_Algorithm(N, Uf);
+        for (i in 0..N-1) {
+            set isConstantFunction = isConstantFunction and result[i]==0;
+        }
 
         return isConstantFunction;
     }
@@ -279,7 +349,31 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
 
         // DJ_Test appears in the list of unit tests for the solution; run it to verify your code.
 
-        // ...
+        mutable r= false;
+
+        set r = DJ_Algorithm(4, Oracle_Zero);
+        Fact(r, "Oracle_Zero not identified as constant function");
+
+        set r = DJ_Algorithm(4, Oracle_One);
+        Fact(r, "Oracle_One not identified as constant function");
+
+        set r = DJ_Algorithm(4, Oracle_HammingWithPrefix(_, _, [0,0]));
+        Fact(not r, "Oracle_HammingWithPrefix not identified as balanced function");
+
+        set r = DJ_Algorithm(4, Oracle_Kth_Qubit(_, _, 2));
+        Fact(not r, "Oracle_Kth_Qubit not identified as constant function");
+
+        set r = DJ_Algorithm(3, Oracle_MajorityFunction);
+        Fact(not r, "Oracle_MajorityFunction not identified as constant function");
+
+        set r = DJ_Algorithm(4, Oracle_OddNumberOfOnes);
+        Fact(not r, "Oracle_OddNumberOfOnes not identified as constant function");
+
+        set r = DJ_Algorithm(4, Oracle_ProductFunction(_, _, [1,1,1,1]));
+        Fact(not r, "Oracle_ProductFunction not identified as constant function");
+
+        set r = DJ_Algorithm(4, Oracle_ProductWithNegationFunction(_, _, [0,1,1,0]));
+        Fact(not r, "Oracle_ProductWithNegationFunction not identified as constant function");
     }
     
     
@@ -300,14 +394,36 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
     operation Noname_Algorithm (N : Int, Uf : ((Qubit[], Qubit) => Unit)) : Int[] {
         
         // Hint: The bit vector r does not need to be the same as the one used by the oracle,
-        // it just needs to produce equivalent results.
+        // it just needs to produce equivalent results (add 0 or add 1)
         
         // Declare an Int array in which the result will be stored;
         // the variable has to be mutable to allow updating it.
         mutable r = new Int[N];
         
-        // ...
+        using ((x, y) = (Qubit[N], Qubit())) {
+            
+            // apply oracle to qubits all |0>
+            Uf(x, y);
+
+            // f(x) = Σᵢ (𝑟ᵢ 𝑥ᵢ + (1 - 𝑟ᵢ)(1 - 𝑥ᵢ)) = 2 Σᵢ 𝑟ᵢ 𝑥ᵢ - Σᵢ 𝑟ᵢ - Σᵢ 𝑥ᵢ + N
+            // xᵢ = 0 => f(x) = -Σᵢ 𝑟ᵢ + N
+            // due to mod 2 => f(x) = Σᵢ 𝑟ᵢ + N
+
+            // eliminate effect of N (if N is odd add one)
+            if ( N%2 == 1) {
+                X(y);
+            }
+
+            // measure the output register
+            let m = M(y);
+            if (m == One) {
+                // adjust parity of bit vector r (add 0 or add 1)
+                set r w/= 0 <- 1;
+            }
+
+            ResetAll(x);
+            Reset(y);
+        }
         return r;
     }
-    
 }

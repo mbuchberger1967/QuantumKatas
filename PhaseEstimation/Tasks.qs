@@ -8,6 +8,10 @@ namespace Quantum.Kata.PhaseEstimation {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Math;
+    open Microsoft.Quantum.Characterization;
+    open Microsoft.Quantum.Oracles;
+    open Microsoft.Quantum.Arithmetic;
+    open Microsoft.Quantum.Measurement;
 
     
     //////////////////////////////////////////////////////////////////
@@ -43,7 +47,11 @@ namespace Quantum.Kata.PhaseEstimation {
     //      eigenstate |0⟩ if state = 0, or eigenstate |1⟩ if state = 1.
     operation Eigenstates_ZST (q : Qubit, state : Int) : Unit
     is Adj {
-        // ...
+        Fact(state == 0 or state == 1, "state must ne 0 or 1");
+
+        if (state == 1) {
+            X(q);
+        }
     }
 
 
@@ -56,13 +64,14 @@ namespace Quantum.Kata.PhaseEstimation {
     function UnitaryPower (U : (Qubit => Unit is Adj + Ctl), power : Int) : (Qubit => Unit is Adj + Ctl) {
         // Hint: Remember that you can define auxiliary operations.
 
-        // ...
-
-        // Currently this function returns the input unitary for the sake of being able to compile the code.
-        // You will need to return your own unitary instead of U.
-        return U;
+        return UnitaryPowerImpl(U, power, _);
     }
 
+    operation UnitaryPowerImpl(U : (Qubit => Unit is Adj + Ctl), power : Int, q : Qubit) : Unit is Adj + Ctl {
+        for (i in 1..power) {
+            U(q);
+        }
+    }
 
     // Task 1.3. Validate inputs to QPE
     // Inputs:
@@ -73,7 +82,21 @@ namespace Quantum.Kata.PhaseEstimation {
     //      Assert that the given state is an eigenstate of the given unitary,
     //      i.e., do nothing if it is, and throw an exception if it is not.
     operation AssertIsEigenstate (U : (Qubit => Unit), P : (Qubit => Unit is Adj)) : Unit {
-        // ...
+        
+        using (q = Qubit()) {
+            // Prepare the state |ψ⟩ = P|0⟩
+            P(q);
+
+            // apply unitary to qubit
+            U(q);
+
+            // if |ψ⟩ is an eigenstate, U should not modify the state except for a global phase.
+            // SO if we undo P we should measure the original state |0⟩
+            Adjoint P(q);
+
+            AssertAllZero([q]);
+        }
+
     }
 
 
@@ -87,8 +110,32 @@ namespace Quantum.Kata.PhaseEstimation {
     //      The phase of the eigenvalue that corresponds to the eigenstate |ψ⟩, with n bits of precision.
     //      The phase should be between 0 and 1.
     operation QPE (U : (Qubit => Unit is Adj + Ctl), P : (Qubit => Unit is Adj), n : Int) : Double {
-        // ...
-        return -1.0;
+
+        using ((eigenstate, phaseRegister) = (Qubit[1], Qubit[n])) {
+
+            let oracle = DiscreteOracle(UnitaryPowerOracle(U, _, _));
+            let phaseRegisterBE = BigEndian(phaseRegister);
+            
+            // prepare the eigenstate of U
+            P(eigenstate[0]);
+
+            // execute QPE to determine theta = j/2^n
+            QuantumPhaseEstimation(oracle, eigenstate, phaseRegisterBE);
+
+            // measure j, divide by 2^n to get theta
+            let phase = IntAsDouble(MeasureInteger(BigEndianAsLittleEndian(phaseRegisterBE))) / IntAsDouble(PowI(2, n));
+
+            ResetAll(eigenstate);
+            ResetAll(phaseRegister);
+
+            return phase;
+        }        
+    }
+
+    operation UnitaryPowerOracle(U : (Qubit => Unit is Adj + Ctl), power : Int, q : Qubit[]) : Unit is Adj + Ctl {
+        for (i in 1..power) {
+            U(q[0]);
+        }
     }
 
 
@@ -97,7 +144,52 @@ namespace Quantum.Kata.PhaseEstimation {
     //       on several simple unitaries and their eigenstates.
     // This task is not covered by a test and allows you to experiment with running the algorithm.
     operation T15_E2E_QPE_Test () : Unit {
-        // ...
+        // Z|0>=|0>, Z|1> = -|1>
+        EqualityWithinToleranceFact(QPE(Z, I, 1), 0.0, 0.25);
+        EqualityWithinToleranceFact(QPE(Z, X, 1), 0.5, 0.25);
+
+        // S|0>=|0>, S|1> = i|1>
+        EqualityWithinToleranceFact(QPE(S, I, 2), 0.0, 0.125);
+        EqualityWithinToleranceFact(QPE(S, X, 2), 0.25, 0.125);
+
+        // T|0>=|0>, T|1> = e^(2*pi*i/8)|1>
+        EqualityWithinToleranceFact(QPE(T, I, 3), 0.0,   0.0625);
+        EqualityWithinToleranceFact(QPE(T, X, 3), 0.125, 0.0625);
+
+        // X|0>=|1>, X|1> = |0>
+        // eigenstate |+> => eigenvalue +1
+        EqualityWithinToleranceFact(QPE(X, H, 2), 0.0, 0.125);
+        // eigenstate |-> or -|-> => eigenvalue -1
+        // H*X = U(pi/2, pi, pi) = P
+        EqualityWithinToleranceFact(QPE(X, MultiplyUnitary(H, X), 2), 0.5, 0.125);
+
+        // Y|0>=-i|0>, Y|1> = |0>
+        // eigenstate 1/sqrt(2)(-i|0>+|1>) -> eigenvalue +1
+        // Rx(pi/2)*X|0> = 1/sqrt(2)(-i|0>+|1> -> Rx*X = P
+        EqualityWithinToleranceFact(QPE(Y, MultiplyUnitary(Rx(PI()/2.0, _), X), 2), 0., 0.125);
+        // eigenstate 1/sqrt(2)(|0>-i|1>) -> eigenvalue -1
+        // Rx(pi/2) = P
+        EqualityWithinToleranceFact(QPE(Y, Rx(PI()/2.0, _), 2), 0.5, 0.125);
+
+
+        // U = (( i  0 ) (0 -i)), U|0> = i|0>, U|1> = -i|1>
+        // eigenstate : |0> -> eigenvalue +i
+        // P=I
+        EqualityWithinToleranceFact(QPE(Rz(PI(), _), I, 2), 0.75, 0.125);
+        // eigenstate : |1> -> eigenvalue -i
+        // P=X
+        EqualityWithinToleranceFact(QPE(Rz(PI(), _), X, 2), 0.25, 0.125);
+    }
+
+    // returns a unitary that performs a multiplication, U1 is the left and U2 is the right unitary (so U1 U2 |q>)
+    function MultiplyUnitary (U1 : (Qubit => Unit is Adj + Ctl), U2 : (Qubit => Unit is Adj + Ctl)) : (Qubit => Unit is Adj + Ctl) {
+
+        return MultiplyUnitaryImpl(U1, U2, _);
+    }
+
+   operation MultiplyUnitaryImpl(U1 : (Qubit => Unit is Adj + Ctl), U2 : (Qubit => Unit is Adj + Ctl), q : Qubit) : Unit is Adj + Ctl {
+            U2(q);
+            U1(q);
     }
 
 
@@ -138,8 +230,31 @@ namespace Quantum.Kata.PhaseEstimation {
         // Note: It is possible to use the QPE implementation from task 1.4 to solve this task, 
         // but we suggest you implement the circuit by hand for the sake of learning.
 
-        // ...
-        return 0;
+        // Using QPE from above
+//        let theta = QPE(U, P, 1);
+//        return theta == 0.0 ? 1 | -1;
+
+        // Iterative Phase Estimation
+        using ((control, eigenstate)=(Qubit(), Qubit())) {
+            //Prepare eigenstate
+            P(eigenstate);
+
+            //iteration
+            H(control);
+            
+            // Rz(x<=pi/2) is ok, x> pi/2 gives error
+//            Rz(PI()/1.5, control);
+
+            Controlled U([control], eigenstate);
+
+            H(control);
+
+            let eigenvalue = M(control)==Zero ? +1 | -1;
+
+            ResetAll([control, eigenstate]);
+
+            return eigenvalue;
+        }
     }
 
 
@@ -159,13 +274,55 @@ namespace Quantum.Kata.PhaseEstimation {
         //       What are the possible outcomes for each eigenvalue?
         //       What eigenvalues you can and can not distinguish using this circuit?
 
-        // ...
+        // Iterative Phase Estimation
+        using ((control, eigenstate)=(Qubit(), Qubit())) {
+            //Prepare eigenstate
+            P(eigenstate);
+
+            //iteration
+            mutable (measuredZero, measuredOne) = (false, false); 
+            mutable iter = 0;
+            
+            repeat {
+                set iter += 1;
+                H(control);
+                Controlled U([control], eigenstate);
+                H(control);
+
+                let measure = MResetZ(control);
+                set (measuredZero, measuredOne) = (measuredZero or measure==Zero, measuredOne or measure == One);
+            } 
+            // repeat the loop until we get both Zero and One measurement outcomes
+            // or until we're reasonably certain that we won't get a different outcome
+            until (iter >10 or measuredZero and measuredOne);
+
+            Reset(eigenstate);
+
+            // if only Zero or only One was measured, return eigenphase 0.0 or 0.5
+            // all measurements yielded Zero => eigenvalue +1
+            // all measurements yielded One => eigenvalue -1
+            if ( not measuredZero or not measuredOne) {
+                return measuredZero ? 0.0 | 0.5;
+            }
+        }
 
         // Hint 2: What eigenvalues you can and can not distinguish using this circuit?
         //         What circuit you can apply to distinguish them?
 
-        // ...
-        return -1.0;
+        using ((control, eigenstate)=(Qubit(), Qubit())) {
+            //Prepare eigenstate
+            P(eigenstate);
+
+            H(control);
+            S(control);
+            Controlled U([control], eigenstate);
+            H(control);
+
+            let eigenphase = MResetZ(control)==Zero ? 0.75 | 0.25;
+            Reset(eigenstate);
+            return eigenphase;
+        }
+
     }
 
 

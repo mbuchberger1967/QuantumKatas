@@ -39,7 +39,7 @@ namespace Quantum.Kata.KeyDistribution {
     //	      if qs[i] was in state |0⟩, it should become |+⟩ = (|0⟩ + |1⟩) / sqrt(2),
     //	      if qs[i] was in state |1⟩, it should become |-⟩ = (|0⟩ - |1⟩) / sqrt(2).
     operation DiagonalPolarization (qs : Qubit[]) : Unit {
-        // ...
+        ApplyToEachA(H, qs);
     }
 
 
@@ -50,7 +50,7 @@ namespace Quantum.Kata.KeyDistribution {
     // Note that this is not the same as keeping the qubit in the |0⟩ state with 50% probability
     // and converting it to the |1⟩ state with 50% probability!
     operation EqualSuperposition (q : Qubit) : Unit {
-        // ...
+        H(q);
     }
     
 
@@ -65,8 +65,11 @@ namespace Quantum.Kata.KeyDistribution {
     // This will be used by both Alice and Bob to choose either the sequence of bits to send
     // or the sequence of bases (false indicates |0⟩/|1⟩ basis, and true indicates |+⟩/|-⟩ basis) to use when encoding/measuring the bits.
     operation RandomArray (N : Int) : Bool[] {
-        // ...
-        return new Bool[N];
+        mutable result = new Bool[N];
+        for (i in 0..N-1) {
+            set result w/= i <- RandomInt(2)==1;
+        }
+        return result;
     }
 
 
@@ -86,7 +89,15 @@ namespace Quantum.Kata.KeyDistribution {
         Fact(Length(qs) == Length(bases), "Input arrays should have the same length");
         Fact(Length(qs) == Length(bits), "Input arrays should have the same length");
 
-        // ...
+        let n = Length(qs);
+        for ( i in 0..n-1) {
+            if (bits[i]) {
+                X(qs[i]);
+            }
+            if (bases[i]) {
+                H(qs[i]);
+            }
+        }
     }
 
 
@@ -106,8 +117,12 @@ namespace Quantum.Kata.KeyDistribution {
         // You don't need to modify them. Feel free to remove them, this won't cause your code to fail.
         Fact(Length(qs) == Length(bases), "Input arrays should have the same length");
         
-        // ...
-        return new Bool[0];
+        for (i in 0..Length(qs)-1) {
+            if (bases[i]) {
+                H(qs[i]);
+            }
+        }
+        return ResultArrayAsBoolArray(MultiM(qs));
     }
 
 
@@ -124,8 +139,13 @@ namespace Quantum.Kata.KeyDistribution {
         Fact(Length(basesAlice) == Length(basesBob), "Input arrays should have the same length");
         Fact(Length(basesAlice) == Length(measurementsBob), "Input arrays should have the same length");
 
-        // ...
-        return new Bool[0];
+        mutable key = new Bool[0];
+        for ((a, b, bit) in Zip3(basesAlice, basesBob, measurementsBob)) {
+            if ( a==b ) {
+                set key += [bit];
+            }
+        }
+        return key;
     }
 
 
@@ -141,8 +161,16 @@ namespace Quantum.Kata.KeyDistribution {
         // You don't need to modify them. Feel free to remove them, this won't cause your code to fail.
         Fact(Length(keyAlice) == Length(keyBob), "Input arrays should have the same length");
 
-        // ...
-        return false;
+        let n = Length(keyBob);
+        mutable count = 0;
+
+        for ((a,b) in Zip(keyAlice, keyBob)) {
+            if ( a == b) {
+                set count += 1;
+            }
+        }
+//        Message($"errors {count} in {n} bits vs treshold {threshold}");
+        return IntAsDouble(count)/IntAsDouble(n) >= IntAsDouble(threshold)/100.0;
     }
 
 
@@ -153,29 +181,41 @@ namespace Quantum.Kata.KeyDistribution {
     // This is an open-ended task and is not covered by a test; 
     // you can run T26_BB84Protocol_Test to run your code.
     operation T26_BB84Protocol_Test () : Unit {
-        // 1. Alice chooses a random set of bits to encode in her qubits 
-        //    and a random set of bases to prepare her qubits in.
-        // ...
 
-        // 2. Alice allocates qubits, encodes them using her choices and sends them to Bob.
-        //    (Note that you can not reflect "sending the qubits to Bob" in Q#)
-        // ...
+        let n=20;
+        let threshold = 99;
 
-        // 3. Bob chooses a random set of bases to measure Alice's qubits in.
-        // ...
+        using (qs = Qubit[20]) {
 
-        // 4. Bob measures Alice's qubits in his chosen bases.
-        // ...
+            // 1. Alice chooses a random set of bits to encode in her qubits 
+            //    and a random set of bases to prepare her qubits in.
+            let bitsAlice = RandomArray(n);
+            let basesAlice = RandomArray(n);
 
-        // 5. Alice and Bob compare their chosen bases and use the bits in the matching positions to create a shared key.
-        // ...
+            // 2. Alice allocates qubits, encodes them using her choices and sends them to Bob.
+            //    (Note that you can not reflect "sending the qubits to Bob" in Q#)
+            PrepareAlicesQubits(qs, basesAlice, bitsAlice);
 
-        // 6. Alice and Bob check to make sure nobody eavesdropped by comparing a subset of their keys
-        //    and verifying that more than a certain percentage of the bits match.
-        // For this step, you can check the percentage of matching bits using the entire key 
-        // (in practice only a subset of indices is chosen to minimize the number of discarded bits).
-        // ...
+            // 3. Bob chooses a random set of bases to measure Alice's qubits in.
+            let basesBob = RandomArray(n);
 
+            // 4. Bob measures Alice's qubits in his chosen bases.
+            let bitsBob = MeasureBobsQubits(qs, basesBob);
+
+            // 5. Alice and Bob compare their chosen bases and use the bits in the matching positions to create a shared key.
+            let keyAlice = GenerateSharedKey(basesAlice, basesBob, bitsAlice);
+            let keyBob = GenerateSharedKey(basesAlice, basesBob, bitsBob);
+
+            // 6. Alice and Bob check to make sure nobody eavesdropped by comparing a subset of their keys
+            //    and verifying that more than a certain percentage of the bits match.
+            // For this step, you can check the percentage of matching bits using the entire key 
+            // (in practice only a subset of indices is chosen to minimize the number of discarded bits).
+            if (CheckKeysMatch(keyAlice, keyBob, threshold)) {
+                Message($"Successfully generated keys {keyAlice}/{keyBob}");
+            }
+
+            ResetAll(qs);
+        }
         // If you've done everything correctly, the generated keys will always match, since there is no eavesdropping going on.
         // In the next section you will explore the effects introduced by eavesdropping.
     }
@@ -204,8 +244,20 @@ namespace Quantum.Kata.KeyDistribution {
     //       eavesdropping scenario, in which you have to guess the basis yourself.
 
     operation Eavesdrop (q : Qubit, basis : Bool) : Bool {
-        // ...
-        return false;
+        // mutable result = Zero;
+
+        // within {
+        //     if (basis) {
+        //         H(q);
+        //     }
+        // }
+        // apply {
+        //     set result = M(q);
+        // }
+        // return result == One;
+
+        // compact version
+        return Measure([basis ? PauliX | PauliZ], [q]) == One;
     }
     
 
@@ -216,6 +268,50 @@ namespace Quantum.Kata.KeyDistribution {
     // This is an open-ended task and is not covered by a test; 
     // you can run T32_BB84ProtocolWithEavesdropper_Test to run your code.
     operation T32_BB84ProtocolWithEavesdropper_Test () : Unit {
-        // ...
+        let n=20;
+        let threshold = 90;
+
+        using (qs = Qubit[20]) {
+
+            // 1. Alice chooses a random set of bits to encode in her qubits 
+            //    and a random set of bases to prepare her qubits in.
+            let bitsAlice = RandomArray(n);
+            let basesAlice = RandomArray(n);
+
+            // 2. Alice allocates qubits, encodes them using her choices and sends them to Bob.
+            //    (Note that you can not reflect "sending the qubits to Bob" in Q#)
+            PrepareAlicesQubits(qs, basesAlice, bitsAlice);
+
+            // Eve eavesdrops on all qubits, guessing the basis at random
+            
+            for (i in 0..n-1) {
+                let b = Eavesdrop(qs[i], RandomInt(2)==1);
+            }
+
+
+            // 3. Bob chooses a random set of bases to measure Alice's qubits in.
+            let basesBob = RandomArray(n);
+
+            // 4. Bob measures Alice's qubits in his chosen bases.
+            let bitsBob = MeasureBobsQubits(qs, basesBob);
+
+            // 5. Alice and Bob compare their chosen bases and use the bits in the matching positions to create a shared key.
+            let keyAlice = GenerateSharedKey(basesAlice, basesBob, bitsAlice);
+            let keyBob = GenerateSharedKey(basesAlice, basesBob, bitsBob);
+
+            // 6. Alice and Bob check to make sure nobody eavesdropped by comparing a subset of their keys
+            //    and verifying that more than a certain percentage of the bits match.
+            // For this step, you can check the percentage of matching bits using the entire key 
+            // (in practice only a subset of indices is chosen to minimize the number of discarded bits).
+            if (CheckKeysMatch(keyAlice, keyBob, threshold)) {
+                Message($"Successfully generated keys {keyAlice}/{keyBob}");
+            }
+            else {
+                Message($"Caught an eavesdropper, discarding the keys {keyAlice}/{keyBob}");
+            }
+
+            ResetAll(qs);
+        }
+
     }
 }
