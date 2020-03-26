@@ -55,8 +55,8 @@ namespace Quantum.Kata.RippleCarryAdder {
     //         |-⟩ = (|0⟩ - |1⟩) / sqrt(2)
     //         |+⟩ ⨂ |-⟩ ⨂ |0⟩ → (|000⟩ + |101⟩ - |011⟩ - |110⟩) / 2
     operation LowestBitSum (a : Qubit, b : Qubit, sum : Qubit) : Unit is Adj {
-        // ...
-
+        CNOT(a, sum);
+        CNOT(b, sum);
     }
 
 
@@ -74,8 +74,7 @@ namespace Quantum.Kata.RippleCarryAdder {
     // Example:
     //         |+⟩ ⨂ |-⟩ ⨂ |0⟩ → (|000⟩ + |100⟩ - |010⟩ - |111⟩) / 2
     operation LowestBitCarry (a : Qubit, b : Qubit, carry : Qubit) : Unit is Adj {
-        // ...
-
+        CCNOT(a, b, carry);
     }
 
 
@@ -88,8 +87,8 @@ namespace Quantum.Kata.RippleCarryAdder {
     //      1) transform the "sum" qubit into the lowest bit of the binary sum of φ and ψ,
     //      2) transform the "carry" qubit into the carry bit produced by that sum.
     operation OneBitAdder (a : Qubit, b : Qubit, sum : Qubit, carry : Qubit) : Unit is Adj {
-        // ...
-
+        LowestBitSum(a, b, sum);
+        LowestBitCarry(a, b, carry);
     }
 
 
@@ -101,9 +100,11 @@ namespace Quantum.Kata.RippleCarryAdder {
     //      4) qubit "sum" in state |0⟩.
     // Goal: transform the "sum" qubit into the lowest bit of the binary sum of φ, ψ and ω.
     operation HighBitSum (a : Qubit, b : Qubit, carryin : Qubit, sum : Qubit) : Unit is Adj {
-        // ...
-
+        CNOT(a, sum);
+        CNOT(b, sum);
+        CNOT(carryin, sum);
     }
+
 
 
     // Task 1.5. Carry of 3 bits
@@ -114,8 +115,9 @@ namespace Quantum.Kata.RippleCarryAdder {
     //      4) qubit "carryout" in state |0⟩.
     // Goal: transform the "carryout" qubit into the carry bit produced by the sum of φ, ψ and ω.
     operation HighBitCarry (a : Qubit, b : Qubit, carryin : Qubit, carryout : Qubit) : Unit is Adj {
-        // ...
-
+        CCNOT(a, b, carryout);
+        CCNOT(a, carryin, carryout);
+        CCNOT(b, carryin, carryout);
     }
 
 
@@ -135,8 +137,15 @@ namespace Quantum.Kata.RippleCarryAdder {
     operation TwoBitAdder (a : Qubit[], b : Qubit[], sum : Qubit[], carry : Qubit) : Unit is Adj {
         // Hint: don't forget that you can allocate extra qubits.
 
-        // ...
+        using (carrylow = Qubit()) {
+            LowestBitSum(a[0], b[0], sum[0]);
+            LowestBitCarry(a[0], b[0], carrylow);
+            HighBitSum(a[1], b[1], carrylow, sum[1]);
+            HighBitCarry(a[1], b[1], carrylow, carry);
 
+            // reset ancillary
+            Adjoint LowestBitCarry(a[0], b[0], carrylow);
+        }
     }
 
 
@@ -150,11 +159,61 @@ namespace Quantum.Kata.RippleCarryAdder {
     //      1) transform the "sum" register into the binary sum of φ and ψ,
     //      2) transform the "carry" qubit into the carry bit produced by that sum.
     // Challenge: can you do this without allocating extra qubits?
+    // operation ArbitraryAdder (a : Qubit[], b : Qubit[], sum : Qubit[], carry : Qubit) : Unit is Adj {
+        
+    //     let N=Length(a);
+    //     if ( N==1 ) {
+    //         LowestBitSum(a[0], b[0], sum[0]);
+    //         LowestBitCarry(a[0], b[0], carry);
+    //     }
+    //     else {
+        
+    //         using (carryBits = Qubit[N]) {
+
+
+    //             LowestBitSum(a[0], b[0], sum[0]);
+    //             LowestBitCarry(a[0], b[0], carryBits[0]);
+
+    //             for (i in 1..N-1) {
+    //                 HighBitSum(a[i], b[i], carryBits[i-1], sum[i]);
+    //                 HighBitCarry(a[i], b[i], carryBits[i-1], carryBits[i]);
+    //             }
+
+    //             CNOT(carryBits[N-1], carry);
+
+
+    //             // reset ancillary
+    //             for (i in N-1..-1..1) {
+    //                 Adjoint HighBitCarry(a[i], b[i], carryBits[i-1], carryBits[i]);
+    //             }
+    //             Adjoint LowestBitCarry(a[0], b[0], carryBits[0]);
+    //         }
+    //     }
+    // }
+
     operation ArbitraryAdder (a : Qubit[], b : Qubit[], sum : Qubit[], carry : Qubit) : Unit is Adj {
-        // ...
+        
+        let N=Length(a);
 
+        // calculate carry
+        LowestBitCarry(a[0], b[0], sum[0]);
+
+        for (i in 1..N-1) {
+            HighBitCarry(a[i], b[i], sum[i-1], sum[i]);
+        }
+
+        CNOT(sum[N-1], carry);
+
+        // cleanup sum[i] and calculate sum
+        for (i in N-1..-1..1) {
+            Adjoint HighBitCarry(a[i], b[i], sum[i-1], sum[i]);
+            HighBitSum(a[i], b[i], sum[i-1], sum[i]);
+        }
+
+        Adjoint LowestBitCarry(a[0], b[0], sum[0]);
+        LowestBitSum(a[0], b[0], sum[0]);
+        
     }
-
 
     //////////////////////////////////////////////////////////////////
     // Part II. Simple in-place adder
@@ -171,7 +230,7 @@ namespace Quantum.Kata.RippleCarryAdder {
     // Goal: transform qubit "b" into the lowest bit of the sum of φ and ψ.
     //       Leave qubit "a" unchanged.
     operation LowestBitSumInPlace (a : Qubit, b : Qubit) : Unit is Adj {
-        // ...
+        CNOT(a, b);
 
     }
 
@@ -191,8 +250,9 @@ namespace Quantum.Kata.RippleCarryAdder {
     operation OneBitAdderInPlace (a : Qubit, b : Qubit, carry : Qubit) : Unit is Adj {
         // Hint: think carefully about the order of operations.
 
-        // ...
-
+//        CCNOT(a, b, carry);
+        LowestBitCarry(a, b, carry);
+        CNOT(a, b);
     }
 
     
@@ -204,8 +264,8 @@ namespace Quantum.Kata.RippleCarryAdder {
     // Goal: transform qubit "b" into the lowest bit from the addition of φ and ψ and ω.
     //       Leave qubits "a" and "carryin" unchanged.
     operation HighBitSumInPlace (a : Qubit, b : Qubit, carryin : Qubit) : Unit is Adj {
-        // ...
-
+        CNOT(a, b);
+        CNOT(carryin, b);
     }
 
 
@@ -219,8 +279,17 @@ namespace Quantum.Kata.RippleCarryAdder {
     //      2) transform the "carry" qubit into the carry bit from the addition.
     //         Leave register "a" unchanged.
     operation TwoBitAdderInPlace (a : Qubit[], b : Qubit[], carry : Qubit) : Unit is Adj {
-        // ...
 
+        using (carryInternal = Qubit()) {
+            LowestBitCarry(a[0], b[0], carryInternal);
+            HighBitCarry(a[1], b[1], carryInternal, carry);
+
+            HighBitSumInPlace(a[1], b[1], carryInternal);
+            Adjoint LowestBitCarry(a[0], b[0], carryInternal);
+
+            LowestBitSumInPlace(a[0], b[0]);
+
+        }
     }
 
     
@@ -234,8 +303,28 @@ namespace Quantum.Kata.RippleCarryAdder {
     //      2) transform the "carry" qubit into the carry bit from the addition.
     //         Leave register "a" unchanged.
     operation ArbitraryAdderInPlace (a : Qubit[], b : Qubit[], carry : Qubit) : Unit is Adj {
-        // ...
+        let N=Length(a);
 
+        using (carryInternals = Qubit[N]) {
+
+            LowestBitCarry(a[0], b[0], carryInternals[0]);
+
+            for ( i in 1..N-1) {
+                HighBitCarry(a[i], b[i], carryInternals[i-1], carryInternals[i]);
+            }
+
+            CNOT(carryInternals[N-1], carry);
+
+            // undo carryInternals anc calc sum
+            for ( i in N-1..-1..1) {
+                Adjoint HighBitCarry(a[i], b[i], carryInternals[i-1], carryInternals[i]);
+                HighBitSumInPlace(a[i], b[i], carryInternals[i-1]);
+            }
+
+            Adjoint LowestBitCarry(a[0], b[0], carryInternals[0]);
+            LowestBitSumInPlace(a[0], b[0]);
+
+        }
     }
 
     
@@ -258,8 +347,9 @@ namespace Quantum.Kata.RippleCarryAdder {
     //      2) transform qubit "b" into |φ + ψ⟩,
     //      3) transform qubit "c" into |φ + ω⟩.
     operation Majority (a : Qubit, b : Qubit, c : Qubit) : Unit is Adj {
-        // ...
-
+        CNOT(a, b);
+        CNOT(a, c);
+        CCNOT(b, c, a);
     }
 
     
@@ -273,8 +363,9 @@ namespace Quantum.Kata.RippleCarryAdder {
     //      2) transform qubit "b" into state |φ + ψ + ω⟩,
     //      3) restore qubit "c" into state |ω⟩.
     operation UnMajorityAdd (a : Qubit, b : Qubit, c : Qubit) : Unit is Adj {
-        // ...
-
+        CCNOT(b, c, a);
+        CNOT(a, c);
+        CNOT(c, b);
     }
 
 
@@ -288,8 +379,11 @@ namespace Quantum.Kata.RippleCarryAdder {
         // Hint: Allocate an extra qubit to hold the carry bit used in Majority and UMA gates during the computation.
         // It's less efficient here, but it will help in the next tasks.
 
-        // ...
-
+        using (ancillary = Qubit()) {
+            Majority(a, b, ancillary);
+            CNOT(a, carry);
+            UnMajorityAdd(a, b, ancillary);
+        }
     }
 
 
@@ -302,7 +396,13 @@ namespace Quantum.Kata.RippleCarryAdder {
     operation TwoBitMajUmaAdder (a : Qubit[], b : Qubit[], carry : Qubit) : Unit is Adj {
         // Hint: think carefully about which qubits you need to pass to the two gates.
 
-        // ...
+        using (ancillary = Qubit()) {
+            Majority(a[0], b[0], ancillary);
+            Majority(a[1], b[1], a[0]);
+            CNOT(a[1], carry);
+            UnMajorityAdd(a[1], b[1], a[0]);
+            UnMajorityAdd(a[0], b[0], ancillary);
+        }
 
     }
 
@@ -314,8 +414,23 @@ namespace Quantum.Kata.RippleCarryAdder {
     //      3) qubit "carry" in state |0⟩.
     // Goal: construct an N-bit binary adder from task 2.5 using only one extra qubit.
     operation ArbitraryMajUmaAdder (a : Qubit[], b : Qubit[], carry : Qubit) : Unit is Adj {
-        // ...
+        
+        let N=Length(a);
 
+        using (ancillary = Qubit()) {
+
+            Majority(a[0], b[0], ancillary);
+
+            for (i in 1..N-1) {
+                Majority(a[i], b[i], a[i-1]);
+            }
+            CNOT(a[N-1], carry);
+
+            for (i in N-1..-1..1) {
+                UnMajorityAdd(a[i], b[i], a[i-1]);
+            }
+            UnMajorityAdd(a[0], b[0], ancillary);
+        }
     }
 
 
@@ -339,7 +454,16 @@ namespace Quantum.Kata.RippleCarryAdder {
         // Hint: use the adder you already built, 
         // and experiment with inverting the registers before and after the addition.
 
-        // ...
+        // transform b into 2ᴺ - 1 - b
+        ApplyToEachA(X, b);
+
+        // compute (2ᴺ - 1 - b) + a = 2ᴺ - 1 - (b - a) using existing adder
+        // if this produced a carry, then (2ᴺ - 1 - (b - a)) > 2ᴺ - 1, so (b - a) < 0, and we need a borrow
+        // this means we can use the carry qubit from the addition as the borrow qubit
+        ArbitraryMajUmaAdder(a, b, borrow);
+
+        // transform 2ᴺ - 1 - (b - a) into b - a
+        ApplyToEachA(X, b);
 
     }
 }
