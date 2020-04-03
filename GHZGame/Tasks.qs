@@ -7,6 +7,8 @@ namespace Quantum.Kata.GHZGame {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Logical;
+    open Microsoft.Quantum.Arrays;
 
     //////////////////////////////////////////////////////////////////
     // Welcome!
@@ -44,8 +46,8 @@ namespace Quantum.Kata.GHZGame {
     //     True if Alice, Bob and Charlie won the GHZ game, that is, if r ∨ s ∨ t = a ⊕ b ⊕ c,
     //     and false otherwise.
     function WinCondition (rst : Bool[], abc : Bool[]) : Bool {
-        // ...
-        fail "Task 1.1 not implemented yet";
+        
+        return ((rst[0] or rst[1] or rst[2]) == Xor( Xor(abc[0], abc[1]), abc[2]));
     }
 
 
@@ -54,8 +56,8 @@ namespace Quantum.Kata.GHZGame {
     // Output: A random bit that this player will output (a, b or c).
     // If all players use this strategy, they will win about 50% of the time.
     operation RandomClassicalStrategy (input : Bool) : Bool {
-        // ...
-        fail "Task 1.2 not implemented yet";
+        
+        return RandomInt(2) == 1;
     }
 
 
@@ -65,8 +67,7 @@ namespace Quantum.Kata.GHZGame {
     // All players will use the same strategy.
     // The best classical strategy should win about 75% of the time.
     operation BestClassicalStrategy (input : Bool) : Bool {
-        // ...
-        fail "Task 1.3 not implemented yet";
+        return true;
     }
 
 
@@ -78,8 +79,15 @@ namespace Quantum.Kata.GHZGame {
     // Output:
     //      An array of 3 bits that will be produced if each player uses this strategy.
     operation PlayClassicalGHZ (strategy : (Bool => Bool), inputs : Bool[]) : Bool[] {
-        // ...
-        fail "Task 1.4 not implemented yet";
+        
+        // mutable answer = new Bool[Length(inputs)];
+        // for ( i in 0..Length(answer)-1) {
+        //     set answer w/= i <- strategy(inputs[i]);
+        // }
+        // return answer;
+
+        // in one line
+        return ForEach(strategy, inputs);
     }
 
 
@@ -95,8 +103,23 @@ namespace Quantum.Kata.GHZGame {
     // Input: An array of three qubits in the |000⟩ state.
     // Goal: Create the entangled state |ψ⟩ = (|000⟩ - |011⟩ - |101⟩ - |110⟩) / 2 on these qubits.
     operation CreateEntangledTriple (qs : Qubit[]) : Unit {
-        // ...
-        fail "Task 2.1 not implemented yet";
+        
+        X(qs[0]);
+        X(qs[1]);
+
+        H(qs[0]);
+        H(qs[1]);
+        // At this point we have (|000⟩ - |010⟩ - |100⟩ + |110⟩) / 2
+
+        // Flip the sign of the last term 
+        Controlled Z([qs[0]], qs[1]);
+        // -> (|000⟩ - |010⟩ - |100⟩ - |110⟩) / 2
+
+        // Flip the state of the last qubit for the two middle terms
+        (ControlledOnBitString([false, true], X))([qs[0], qs[1]], qs[2]);
+        // -> (|000⟩ - |011⟩ - |100⟩ - |110⟩) / 2
+        (ControlledOnBitString([true, false], X))([qs[0], qs[1]], qs[2]);
+        // -> (|000⟩ - |011⟩ - |101⟩ - |110⟩) / 2
     }
 
 
@@ -108,8 +131,12 @@ namespace Quantum.Kata.GHZGame {
     //        or the X basis if the bit is 1 (true), and return the result.
     // The state of the qubit after the operation does not matter.
     operation QuantumStrategy (input : Bool, qubit : Qubit) : Bool {
-        // ...
-        fail "Task 2.2 not implemented yet";
+        
+        if (input) {
+            H(qubit);
+        }
+
+        return M(qubit)==One;
     }
 
 
@@ -119,7 +146,18 @@ namespace Quantum.Kata.GHZGame {
     //        The players have already been told what their starting bits (r, s and t) are.
     // Goal:  Return an array of players' output bits (a, b and c).
     operation PlayQuantumGHZ (strategies : (Qubit => Bool)[]) : Bool[] {
-        // ...
-        fail "Task 2.3 not implemented yet";
+
+        mutable answer = new Bool[Length(strategies)];
+       
+        using (qs = Qubit[3]) {
+            CreateEntangledTriple(qs);
+
+            for (i in 0..2) {
+                set answer w/= i <- strategies[i](qs[i]);
+            }
+
+            ResetAll(qs);
+        }
+        return answer;
     }
 }
