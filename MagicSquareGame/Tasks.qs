@@ -124,12 +124,24 @@ namespace Quantum.Kata.MagicSquareGame {
     //     where |ψ⟩₀ and |ψ⟩₁ are Alice's qubits and |ψ⟩₂ and |ψ⟩₃ are Bob's qubits.
     operation CreateEntangledState (qs : Qubit[]) : Unit {
         // Hint: Can you represent this state as a combination of Bell pairs?
+        //
+        // let's ingvestigate bit 0 and 2, they are not entangled with bit 1 and 3;
+        // |0⟩₀⊗|0⟩₂ --H--CNOT--> ((|0⟩₀ ⊗ |0⟩₂ + |1⟩₀ ⊗ |1⟩₂) / sqrt(2))
+        // with |0> = (|+⟩ + |-⟩) / sqrt(2), |1> = (|+⟩ - |-⟩) / sqrt(2)
+        // you get:
+        // ((((|+⟩₀ + |-⟩₀) / sqrt(2)) ⊗ ((|+⟩₂ + |-⟩₂) / sqrt(2))) + (((|+⟩₀ - |-⟩₀) / sqrt(2)) ⊗ ((|+⟩₂ - |-⟩₂) / sqrt(2)))) / sqrt(2) = 
+        // [1/2 ((|+⟩₀ + |-⟩₀) ⊗ (|+⟩₂ + |-⟩₂) + (|+⟩₀ - |-⟩₀) ⊗ (|+⟩₂ - |-⟩₂))] / sqrt(2) =
+        // [1/2 (|+⟩₀|+⟩₂ + |+⟩₀|-⟩₂ + |-⟩₀|+⟩₂ + |-⟩₀|-⟩₂ +  + |+⟩₀|+⟩₂ - |+⟩₀|-⟩₂ - |-⟩₀|+⟩₂ + |-⟩₀|-⟩₂) ] / sqrt(2) =
+        // [1/2 (2 |+⟩₀|+⟩₂ + 2 |-⟩₀|-⟩₂) ] / sqrt(2) = 
+        // (|+⟩₀ ⊗ |+⟩₂ + |-⟩₀ ⊗|-⟩₂) / sqrt(2)
+        //
+        // Analog for bits 1 and 3.
+ 
 
         for ( i in 0..1) {
             H(qs[i]);
             CNOT(qs[i], qs[i+2]);
         }
-
     }
 
 
