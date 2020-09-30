@@ -318,7 +318,7 @@ namespace Quantum.Kata.GroversAlgorithm {
             Message(DoubleAsStringWithFormat(IntAsDouble(correct)/IntAsDouble(invocationNumbers), "correct results with {0}% prob"));
 
             set correct = 0;
-            let pattern = IntAsBoolArray(RandomIntPow2(n), n);
+            let pattern = IntAsBoolArray(Microsoft.Quantum.Random.DrawRandomInt(0, PowI(2,n)-1), n);
 
             Message("Grover Search for |"+IntAsString(BoolArrayAsInt(pattern))+">");
             for (i in 0..invocationNumbers-1) {
