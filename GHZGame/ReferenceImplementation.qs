@@ -15,6 +15,8 @@ namespace Quantum.Kata.GHZGame {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Logical;
+    open Microsoft.Quantum.Random;
 
 
     //////////////////////////////////////////////////////////////////
@@ -23,13 +25,13 @@ namespace Quantum.Kata.GHZGame {
 
     // Task 1.1. Win condition
     function WinCondition_Reference (rst : Bool[], abc : Bool[]) : Bool {
-        return (rst[0] or rst[1] or rst[2]) == XOR(XOR(abc[0], abc[1]), abc[2]);
+        return (rst[0] or rst[1] or rst[2]) == Xor(Xor(abc[0], abc[1]), abc[2]);
     }
 
 
     // Task 1.2. Random classical strategy
     operation RandomClassicalStrategy_Reference (input : Bool) : Bool {
-        return RandomInt(2) == 1;
+        return DrawRandomInt(0, 1) == 1;
     }
 
 
@@ -84,8 +86,8 @@ namespace Quantum.Kata.GHZGame {
             CreateEntangledTriple_Reference(qs);
             
             mutable abc = new Bool[3];
-            for (i in 0..2) {
-                set abc w/= i <- strategies[i](qs[i]);
+            for (idx in 0 .. 2) {
+                set abc w/= idx <- strategies[idx](qs[idx]);
             }
 
             ResetAll(qs);

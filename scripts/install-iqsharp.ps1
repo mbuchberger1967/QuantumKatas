@@ -10,8 +10,7 @@ $install = $False
 
 # Install iqsharp if not installed yet.
 try {
-    dotnet iqsharp --version
-    $install = ($LastExitCode -ne 0)
+    $install = [string]::IsNullOrWhitespace((dotnet tool list --tool-path $Env:TOOLS_DIR | Select-String -Pattern "microsoft.quantum.iqsharp"))
 } catch {
     Write-Host ("`dotnet iqsharp --version` threw error: " + $_)
     $install = $True
@@ -20,14 +19,20 @@ try {
 if ($install) {
     try {
         Write-Host ("Installing Microsoft.Quantum.IQSharp at $Env:TOOLS_DIR")
-        dotnet tool install Microsoft.Quantum.IQSharp --version 0.10.2002.2610 --tool-path $Env:TOOLS_DIR
+        dotnet tool install Microsoft.Quantum.IQSharp --version 0.12.20082513 --tool-path $Env:TOOLS_DIR
 
+        # dotnet-iqsharp writes some output to stderr, which causes Powershell to throw
+        # unless $ErrorActionPreference is set to 'Continue'.
+        $ErrorActionPreference = 'Continue'
         $path = (Get-Item "$Env:TOOLS_DIR\dotnet-iqsharp*").FullName
-        & $path install --user --path-to-tool $path
+        # Redirect stderr output to stdout to prevent an exception being incorrectly thrown.
+        & $path install --user --path-to-tool $path 2>&1 | %{ "$_"}
         Write-Host "iq# kernel installed ($LastExitCode)"
     } catch {
         Write-Host ("iq# installation threw error: " + $_)
         Write-Host ("iq# might not be correctly installed.")
+    } finally {
+        $ErrorActionPreference = 'Stop'
     }
 } else {
     Write-Host ("Microsoft.Quantum.IQSharp is already installed in this host.")

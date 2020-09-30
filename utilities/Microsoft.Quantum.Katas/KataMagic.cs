@@ -3,10 +3,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Jupyter.Core;
 using Microsoft.Quantum.IQSharp;
+using Microsoft.Quantum.IQSharp.Jupyter;
 using Microsoft.Quantum.IQSharp.Common;
 using Microsoft.Quantum.Simulation.Common;
 using Microsoft.Quantum.Simulation.Core;
@@ -18,12 +20,35 @@ namespace Microsoft.Quantum.Katas
         /// <summary>
         /// IQ# Magic that enables executing the Katas on Jupyter.
         /// </summary>
-        public KataMagic(IOperationResolver resolver, ISnippets snippets, ILogger<KataMagic> logger)
+        public KataMagic(IOperationResolver resolver, ISnippets snippets, ILogger<KataMagic> logger, IConfigurationSource configurationSource)
         {
             this.Name = $"%kata";
-            this.Documentation = new Documentation() { Summary = "Executes a single test.", Full = "## Executes a single test.\n##Usage: \n%kata Test \"q# operation\"" };
+            this.Documentation = new Documentation
+            {
+                Summary = "Executes a single test.",
+                Description = "Executes a single test, and reports whether the test passed successfully.",
+                Examples = new []
+                {
+                    "To run a test called `Test`:\n" +
+                    "```\n" +
+                    "In []: %kata T101_StateFlip_Test \n",
+                    "  ...: operation StateFlip (q : Qubit) : Unit is Adj + Ctl {\n",
+                    "           // The Pauli X gate will change the |0⟩ state to the |1⟩ state and vice versa.\n",
+                    "           // Type X(q);\n",
+                    "           // Then run the cell using Ctrl/⌘+Enter.\n",
+                    "\n",
+                    "           // ...\n",
+                    "       }\n" +
+                    "Out[]: Qubit in invalid state. Expecting: Zero\n" +
+	                "       \tExpected:\t0\n"+
+	                "       \tActual:\t0.5000000000000002\n" +
+                    "       Try again!" +
+                    "```\n"
+                }
+            };
             this.Kind = SymbolKind.Magic;
             this.Execute = this.Run;
+            this.ConfigurationSource = configurationSource;
 
             this.Resolver = resolver;
             this.Snippets = snippets;
@@ -35,6 +60,12 @@ namespace Microsoft.Quantum.Katas
         /// The Resolver lets us find compiled Q# operations from the workspace
         /// </summary>
         protected IOperationResolver Resolver { get; }
+
+        /// <summary>
+        ///     The configuration source used by this magic command to control
+        ///     simulation options (e.g.: dump formatting options).
+        /// </summary>
+        public IConfigurationSource ConfigurationSource { get; }
 
         /// <summary>
         /// The list of user-defined Q# code snippets from the notebook.
@@ -51,7 +82,7 @@ namespace Microsoft.Quantum.Katas
         /// - compile the code after found after the name as the user's answer.
         /// - run (simulate) the test and report its result.
         /// </summary>
-        public virtual ExecutionResult Run(string input, IChannel channel)
+        public virtual async Task<ExecutionResult> Run(string input, IChannel channel)
         {
             channel = channel.WithNewLines();
 
@@ -124,7 +155,7 @@ namespace Microsoft.Quantum.Katas
         /// <summary>
         /// Executes the given kata using the provided <c>userAnswer</c> as the actual answer.
         /// To do this, it finds another operation with the same name but in the Kata's namespace
-        /// (by calling `FindRawAnswer`) and replace its implementation with the userAnswer
+        /// (by calling `FindSkeltonAnswer`) and replace its implementation with the userAnswer
         /// in the simulator.
         /// </summary>
         public virtual bool Simulate(OperationInfo test, OperationInfo userAnswer, IChannel channel)
@@ -138,7 +169,8 @@ namespace Microsoft.Quantum.Katas
 
             try
             {
-                var qsim = CreateSimulator();
+                var qsim = CreateSimulator(channel);
+                qsim.DisableExceptionPrinting();
 
                 qsim.DisableLogToConsole();
                 // Register all solutions to previously executed tasks (including the current one)
@@ -146,7 +178,6 @@ namespace Microsoft.Quantum.Katas
                     Logger.LogDebug($"Registering {answer.Key.FullName}");
                     qsim.Register(answer.Key.RoslynType, answer.Value.RoslynType, typeof(ICallable));
                 }
-                qsim.OnLog += channel.Stdout;
 
                 var value = test.RunAsync(qsim, null).Result;
 
@@ -172,8 +203,8 @@ namespace Microsoft.Quantum.Katas
         /// Creates the instance of the simulator to use to run the Test 
         /// (for now always CounterSimulator from the same package).
         /// </summary>
-        public virtual SimulatorBase CreateSimulator() =>
-            new CounterSimulator();
+        public virtual SimulatorBase CreateSimulator(IChannel channel) =>
+            new CounterSimulator().WithJupyterDisplay(channel, ConfigurationSource);
 
         /// <summary>
         /// Returns the OperationInfo with the Test to run based on the given name.

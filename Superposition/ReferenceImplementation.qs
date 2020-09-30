@@ -19,17 +19,19 @@ namespace Quantum.Kata.Superposition {
     open Microsoft.Quantum.Math;
 
 
-    // ------------------------------------------------------
-    // Task 1. Plus state
+    //////////////////////////////////////////////////////////////////
+    // Part I. Simple Gates
+    //////////////////////////////////////////////////////////////////
+
+    // Task 1.1. Plus state
     // Input: a qubit in the |0⟩ state.
     // Goal: prepare a |+⟩ state on this qubit (|+⟩ = (|0⟩ + |1⟩) / sqrt(2)).
     operation PlusState_Reference (q : Qubit) : Unit is Adj {
         H(q);
     }
 
-
     // ------------------------------------------------------
-    // Task 2. Minus state
+    // Task 1.2. Minus state
     // Input: a qubit in the |0⟩ state.
     // Goal: prepare a |-⟩ state on this qubit (|-⟩ = (|0⟩ - |1⟩) / sqrt(2)).
     operation MinusState_Reference (q : Qubit) : Unit is Adj {
@@ -37,22 +39,8 @@ namespace Quantum.Kata.Superposition {
         H(q);
     }
 
-
     // ------------------------------------------------------
-    // Task 3. Unequal superposition
-    // Inputs:
-    //      1) a qubit in the |0⟩ state.
-    //      2) angle alpha, in radians, represented as Double
-    // Goal: prepare a cos(alpha) * |0⟩ + sin(alpha) * |1⟩ state on this qubit.
-    operation UnequalSuperposition_Reference (q : Qubit, alpha : Double) : Unit is Adj {
-
-        // Hint: Experiment with rotation gates from Microsoft.Quantum.Intrinsic
-        Ry(2.0 * alpha, q);
-    }
-
-
-    // ------------------------------------------------------
-    // Task 4. Superposition of all basis vectors on two qubits
+    // Task 1.3. Superposition of all basis vectors on two qubits
     operation AllBasisVectors_TwoQubits_Reference (qs : Qubit[]) : Unit is Adj {
 
         // Since a Hadamard gate will change |0⟩ into |+⟩ = (|0⟩ + |1⟩)/sqrt(2)
@@ -62,9 +50,19 @@ namespace Quantum.Kata.Superposition {
         H(qs[1]);
     }
 
+    // ------------------------------------------------------
+    // Task 1.4. Superposition of basis vectors with phase flip
+    operation AllBasisVectorWithPhaseFlip_TwoQubits_Reference (qs : Qubit[]) : Unit is Adj {
+        
+        // We create the same state as the previous task. 
+        AllBasisVectors_TwoQubits_Reference(qs);
+
+        // Lastly, we use a controlled Z gate to phase flip the |11⟩ state.
+        Controlled Z ([qs[0]],qs[1]);
+    }
 
     // ------------------------------------------------------
-    // Task 5. Superposition of basis vectors with phases
+    // Task 1.5. Superposition of basis vectors with phases
     operation AllBasisVectorsWithPhases_TwoQubits_Reference (qs : Qubit[]) : Unit is Adj {
 
         // Question:
@@ -87,9 +85,8 @@ namespace Quantum.Kata.Superposition {
         S(qs[1]);
     }
 
-
     // ------------------------------------------------------
-    // Task 6. Bell state
+    // Task 1.6. Bell state
     // Input: two qubits in |00⟩ state (stored in an array of length 2).
     // Goal: create a Bell state |Φ⁺⟩ = (|00⟩ + |11⟩) / sqrt(2) on these qubits.
     operation BellState_Reference (qs : Qubit[]) : Unit is Adj {
@@ -97,9 +94,8 @@ namespace Quantum.Kata.Superposition {
         CNOT(qs[0], qs[1]);
     }
 
-
     // ------------------------------------------------------
-    // Task 7. All Bell states
+    // Task 1.7. All Bell states
     // Inputs:
     //      1) two qubits in |00⟩ state (stored in an array of length 2)
     //      2) an integer index
@@ -123,9 +119,8 @@ namespace Quantum.Kata.Superposition {
         }
     }
 
-
     // ------------------------------------------------------
-    // Task 8. Greenberger–Horne–Zeilinger state
+    // Task 1.8. Greenberger–Horne–Zeilinger state
     // Input: N qubits in |0...0⟩ state.
     // Goal: create a GHZ state (|0...0⟩ + |1...1⟩) / sqrt(2) on these qubits.
     operation GHZ_State_Reference (qs : Qubit[]) : Unit is Adj {
@@ -137,9 +132,8 @@ namespace Quantum.Kata.Superposition {
         }
     }
 
-
     // ------------------------------------------------------
-    // Task 9. Superposition of all basis vectors
+    // Task 1.9. Superposition of all basis vectors
     // Input: N qubits in |0...0⟩ state.
     // Goal: create an equal superposition of all basis vectors from |0...0⟩ to |1...1⟩
     // (i.e. state (|0...0⟩ + ... + |1...1⟩) / sqrt(2^N) ).
@@ -150,9 +144,8 @@ namespace Quantum.Kata.Superposition {
         }
     }
 
-
     // ------------------------------------------------------
-    // Task 10. Superposition of all even or all odd numbers
+    // Task 1.10. Superposition of all even or all odd numbers
     // Inputs:
     //      1) N qubits in |0...0⟩ state.
     //      2) A boolean isEven.
@@ -169,9 +162,183 @@ namespace Quantum.Kata.Superposition {
         }
     }
 
+    // ------------------------------------------------------
+    // Task 1.11. Superposition of |0...0⟩ and given bit string
+    // Inputs:
+    //      1) N qubits in |0...0⟩ state
+    //      2) bit string represented as Bool[]
+    // Goal: create an equal superposition of |0...0⟩ and basis state given by the second bit string.
+    // Bit values false and true correspond to |0⟩ and |1⟩ states.
+    // You are guaranteed that the qubit array and the bit string have the same length.
+    // You are guaranteed that the first bit of the bit string is true.
+    // Example: for bit string = [true, false] the qubit state required is (|00⟩ + |10⟩) / sqrt(2).
+    operation ZeroAndBitstringSuperposition_Reference (qs : Qubit[], bits : Bool[]) : Unit is Adj {
+
+        Fact(Length(bits) == Length(qs), "Arrays should have the same length");
+        Fact(Head(bits), "First bit of the input bit string should be set to true");
+
+        // Hadamard first qubit
+        H(Head(qs));
+
+        // iterate through the bit string and CNOT to qubits corresponding to true bits
+        for (i in 1 .. Length(qs) - 1) {
+            if (bits[i]) {
+                CNOT(Head(qs), qs[i]);
+            }
+        }
+    }
 
     // ------------------------------------------------------
-    // Task 11. |00⟩ + |01⟩ + |10⟩ state
+    // Task 1.12. Superposition of two bit strings
+    // Inputs:
+    //      1) N qubits in |0...0⟩ state
+    //      2) two bit string represented as Bool[]s
+    // Goal: create an equal superposition of two basis states given by the bit strings.
+    // Bit values false and true correspond to |0⟩ and |1⟩ states.
+    // Example: for bit strings [false, true, false] and [false, false, true]
+    // the qubit state required is (|010⟩ + |001⟩) / sqrt(2).
+    // You are guaranteed that the two bit strings will be different.
+
+    // helper function for TwoBitstringSuperposition_Reference
+    function FindFirstDiff_Reference (bits1 : Bool[], bits2 : Bool[]) : Int {
+        for (i in 0 .. Length(bits1) - 1) {
+            if (bits1[i] != bits2[i]) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    operation TwoBitstringSuperposition_Reference (qs : Qubit[], bits1 : Bool[], bits2 : Bool[]) : Unit is Adj {
+
+        // find the index of the first bit at which the bit strings are different
+        let firstDiff = FindFirstDiff_Reference(bits1, bits2);
+
+        // Hadamard corresponding qubit to create superposition
+        H(qs[firstDiff]);
+
+        // iterate through the bit strings again setting the final state of qubits
+        for (i in 0 .. Length(qs) - 1) {
+            if (bits1[i] == bits2[i]) {
+                // if two bits are the same apply X or nothing
+                if (bits1[i]) {
+                    X(qs[i]);
+                }
+            } else {
+                // if two bits are different, set their difference using CNOT
+                if (i > firstDiff) {
+                    CNOT(qs[firstDiff], qs[i]);
+                    if (bits1[i] != bits1[firstDiff]) {
+                        X(qs[i]);
+                    }
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------
+    // Task 1.13*. Superposition of four bit strings
+    // Inputs:
+    //      1) N qubits in |0...0⟩ state
+    //      2) four bit string represented as Bool[][] bits
+    //         bits is an array of size 4 x N which describes the bit strings as follows:
+    //         bits[i] describes the i-th bit string and has N elements;
+    //         bit values false and true correspond to |0⟩ and |1⟩ states.
+    //
+    // Goal: create an equal superposition of the four basis states given by the bit strings.
+    operation FourBitstringSuperposition_Reference (qs : Qubit[], bits : Bool[][]) : Unit is Adj {
+        using (anc = Qubit[2]) {
+            // Put two ancillas into equal superposition of 2-qubit basis states
+            ApplyToEachA(H, anc);
+
+            // Set up the right pattern on the main qubits with control on ancillas
+            for (i in 0 .. 3) {
+                for (j in 0 .. Length(qs) - 1) {
+                    if (bits[i][j]) {
+                        (ControlledOnInt(i, X))(anc, qs[j]);
+                    }
+                }
+            }
+
+            // Uncompute the ancillas, using patterns on main qubits as control
+            for (i in 0 .. 3) {
+                if (i % 2 == 1) {
+                    (ControlledOnBitString(bits[i], X))(qs, anc[0]);
+                }
+                if (i / 2 == 1) {
+                    (ControlledOnBitString(bits[i], X))(qs, anc[1]);
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------
+    // Task 1.14. Superposition of all bit strings of the given parity
+    // Inputs:
+    //      1) N qubits in |0..0⟩ state (stored in an array of length N).
+    //      2) An int "parity".
+    // Goal: change the state to an equal superposition of all basis states that have
+    //       an even number of 1s in them if "parity" = 0, or
+    //       an odd number of 1s in them if "parity" = 1.
+    operation AllStatesWithParitySuperposition_Reference (qs : Qubit[], parity : Int) : Unit is Adj + Ctl {
+        // base of recursion: if N = 1, set the qubit to parity
+        let N = Length(qs);
+        if (N == 1) {
+            if (parity == 1) {
+                X(qs[0]);
+            }
+        } else {
+            // split the first qubit into 0 and 1 (with equal amplitudes!)
+            H(qs[0]);
+            // prep 0 ⊗ state with the same parity and 1 ⊗ state with the opposite parity
+            (ControlledOnInt(0, AllStatesWithParitySuperposition_Reference))(qs[0 .. 0], (qs[1 ...], parity));
+            (ControlledOnInt(1, AllStatesWithParitySuperposition_Reference))(qs[0 .. 0], (qs[1 ...], 1 - parity));
+        }
+    }
+
+    // Alternative solution, based on post-selection
+    operation AllStatesWithParitySuperposition_Postselection (qs : Qubit[], parity : Int) : Unit {
+        using (anc = Qubit()) {
+            // Create equal superposition of all basis states
+            ApplyToEach(H, qs);
+            // Calculate the parity of states using CNOTs
+            ApplyToEach(CNOT(_, anc), qs);
+            let res = MResetZ(anc);
+            // Now, if we got measurement result that matches parity, we're good; 
+            // otherwise we can apply X to any one qubit to get our result!
+            if ((res == Zero ? 0 | 1) != parity) {
+                X(qs[0]);
+            }
+        }
+    }
+
+
+    //////////////////////////////////////////////////////////////////
+    // Part II. Arbitrary Rotations
+    //////////////////////////////////////////////////////////////////
+
+    // Task 2.1. Unequal superposition
+    // Inputs:
+    //      1) a qubit in the |0⟩ state.
+    //      2) angle alpha, in radians, represented as Double
+    // Goal: prepare a cos(alpha) * |0⟩ + sin(alpha) * |1⟩ state on this qubit.
+    operation UnequalSuperposition_Reference (q : Qubit, alpha : Double) : Unit is Adj {
+
+        // Hint: Experiment with rotation gates from Microsoft.Quantum.Intrinsic
+        Ry(2.0 * alpha, q);
+    }
+
+    // ------------------------------------------------------
+    // Task 2.2. 1/sqrt(2)|00⟩ + 1/2|01⟩ + 1/2|10⟩ state
+    // Input: two qubits in |00⟩ state (stored in an array of length 2).
+    // Goal: change the state to 1/sqrt(2)|00⟩+1/2|10⟩+1/2|11⟩.
+    operation ControlledRotation_Reference (qs : Qubit[]) : Unit is Adj {
+        H(qs[0]);
+        Controlled H ([qs[0]],qs[1]);
+    }
+
+    // ------------------------------------------------------
+    // Task 2.3*. |00⟩ + |01⟩ + |10⟩ state
     // Input: 2 qubits in |00⟩ state.
     // Goal: create the state (|00⟩ + |01⟩ + |10⟩) / sqrt(3) on these qubits.
     operation ThreeStates_TwoQubits_Reference (qs : Qubit[]) : Unit is Adj {
@@ -204,7 +371,20 @@ namespace Quantum.Kata.Superposition {
     }
 
     // ------------------------------------------------------
-    // Task 12*. Hardy State
+    // Task 2.4*. (|00⟩ + ω |01⟩ + ω² |10⟩) / sqrt(3)
+    // Input: two qubits in |00⟩ state (stored in an array of length 2).
+    // Goal: change the state to (|00⟩ + ω |01⟩ + ω² |10⟩) / sqrt(3).
+    operation ThreeStates_TwoQubits_Phases_Reference (qs : Qubit[]) : Unit is Adj {
+
+        // First create (|00⟩ + |01⟩ + |10⟩) / sqrt(3) state
+        ThreeStates_TwoQubits_Reference(qs);
+        
+        R1(4.0 * PI() / 3.0, qs[0]);
+        R1(2.0 * PI() / 3.0, qs[1]);
+    }
+
+    // ------------------------------------------------------
+    // Task 2.5*. Hardy State
     // Input: 2 qubits in |00⟩ state
     // Goal: create the state (3|00⟩ + |01⟩ + |10⟩ + |11⟩) / sqrt(12) on these qubits.
     operation Hardy_State_Reference (qs : Qubit[]) : Unit is Adj {
@@ -218,125 +398,8 @@ namespace Quantum.Kata.Superposition {
         (ControlledOnInt(1, Ry))([qs[0]], (2.0 * PI()/4.0 , qs[1]));
     }
 
-
     // ------------------------------------------------------
-    // Task 13. Superposition of |0...0⟩ and given bit string
-    // Inputs:
-    //      1) N qubits in |0...0⟩ state
-    //      2) bit string represented as Bool[]
-    // Goal: create an equal superposition of |0...0⟩ and basis state given by the second bit string.
-    // Bit values false and true correspond to |0⟩ and |1⟩ states.
-    // You are guaranteed that the qubit array and the bit string have the same length.
-    // You are guaranteed that the first bit of the bit string is true.
-    // Example: for bit string = [true, false] the qubit state required is (|00⟩ + |10⟩) / sqrt(2).
-    operation ZeroAndBitstringSuperposition_Reference (qs : Qubit[], bits : Bool[]) : Unit is Adj {
-
-        Fact(Length(bits) == Length(qs), "Arrays should have the same length");
-        Fact(Head(bits), "First bit of the input bit string should be set to true");
-
-        // Hadamard first qubit
-        H(Head(qs));
-
-        // iterate through the bit string and CNOT to qubits corresponding to true bits
-        for (i in 1 .. Length(qs) - 1) {
-            if (bits[i]) {
-                CNOT(Head(qs), qs[i]);
-            }
-        }
-    }
-
-
-    // ------------------------------------------------------
-    // Task 14. Superposition of two bit strings
-    // Inputs:
-    //      1) N qubits in |0...0⟩ state
-    //      2) two bit string represented as Bool[]s
-    // Goal: create an equal superposition of two basis states given by the bit strings.
-    // Bit values false and true correspond to |0⟩ and |1⟩ states.
-    // Example: for bit strings [false, true, false] and [false, false, true]
-    // the qubit state required is (|010⟩ + |001⟩) / sqrt(2).
-    // You are guaranteed that the two bit strings will be different.
-
-    // helper function for TwoBitstringSuperposition_Reference
-    function FindFirstDiff_Reference (bits1 : Bool[], bits2 : Bool[]) : Int {
-        for (i in 0 .. Length(bits1) - 1) {
-            if (bits1[i] != bits2[i]) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-
-    operation TwoBitstringSuperposition_Reference (qs : Qubit[], bits1 : Bool[], bits2 : Bool[]) : Unit is Adj {
-
-        // find the index of the first bit at which the bit strings are different
-        let firstDiff = FindFirstDiff_Reference(bits1, bits2);
-
-        // Hadamard corresponding qubit to create superposition
-        H(qs[firstDiff]);
-
-        // iterate through the bit strings again setting the final state of qubits
-        for (i in 0 .. Length(qs) - 1) {
-            if (bits1[i] == bits2[i]) {
-                // if two bits are the same apply X or nothing
-                if (bits1[i]) {
-                    X(qs[i]);
-                }
-            } else {
-                // if two bits are different, set their difference using CNOT
-                if (i > firstDiff) {
-                    CNOT(qs[firstDiff], qs[i]);
-                    if (bits1[i] != bits1[firstDiff]) {
-                        X(qs[i]);
-                    }
-                }
-            }
-        }
-    }
-
-
-    // ------------------------------------------------------
-    // Task 15*. Superposition of four bit strings
-    // Inputs:
-    //      1) N qubits in |0...0⟩ state
-    //      2) four bit string represented as Bool[][] bits
-    //         bits is an array of size 4 x N which describes the bit strings as follows:
-    //         bits[i] describes the i-th bit string and has N elements;
-    //         bit values false and true correspond to |0⟩ and |1⟩ states.
-    //
-    // Goal: create an equal superposition of the four basis states given by the bit strings.
-    operation FourBitstringSuperposition_Reference (qs : Qubit[], bits : Bool[][]) : Unit is Adj {
-        let N = Length(qs);
-
-        using (anc = Qubit[2]) {
-            // Put two ancillas into equal superposition of 2-qubit basis states
-            ApplyToEachA(H, anc);
-
-            // Set up the right pattern on the main qubits with control on ancillas
-            for (i in 0 .. 3) {
-                for (j in 0 .. N - 1) {
-                    if ((bits[i])[j]) {
-                        (ControlledOnInt(i, X))(anc, qs[j]);
-                    }
-                }
-            }
-
-            // Uncompute the ancillas, using patterns on main qubits as control
-            for (i in 0 .. 3) {
-                if (i % 2 == 1) {
-                    (ControlledOnBitString(bits[i], X))(qs, anc[0]);
-                }
-                if (i / 2 == 1) {
-                    (ControlledOnBitString(bits[i], X))(qs, anc[1]);
-                }
-            }
-        }
-    }
-
-
-    // ------------------------------------------------------
-    // Task 16. W state on 2ᵏ qubits
+    // Task 2.6*. W state on 2ᵏ qubits
     // Input: N = 2ᵏ qubits in |0...0⟩ state.
     // Goal: create a W state (https://en.wikipedia.org/wiki/W_state) on these qubits.
     // W state is an equal superposition of all basis states on N qubits of Hamming weight 1.
@@ -369,9 +432,8 @@ namespace Quantum.Kata.Superposition {
         }
     }
 
-
     // ------------------------------------------------------
-    // Task 17**. W state on arbitrary number of qubits
+    // Task 2.7**. W state on arbitrary number of qubits
     // Input: N qubits in |0...0⟩ state (N is not necessarily a power of 2).
     // Goal: create a W state (https://en.wikipedia.org/wiki/W_state) on these qubits.
     // W state is an equal superposition of all basis states on N qubits of Hamming weight 1.
@@ -399,7 +461,6 @@ namespace Quantum.Kata.Superposition {
         }
     }
 
-
     // Iterative solution (equivalent to the WState_Arbitrary_Reference, but with the recursion unrolled)
     // Circuit for N=4: https://algassert.com/quirk#circuit={%22cols%22:[[1,1,1,%22~95cq%22],[1,1,%22~erlf%22,%22%E2%97%A6%22],[1,%22~809j%22,%22%E2%97%A6%22,%22%E2%97%A6%22],[%22X%22,%22%E2%97%A6%22,%22%E2%97%A6%22,%22%E2%97%A6%22]],%22gates%22:[{%22id%22:%22~809j%22,%22name%22:%22FS_2%22,%22matrix%22:%22{{%E2%88%9A%C2%BD,-%E2%88%9A%C2%BD},{%E2%88%9A%C2%BD,%E2%88%9A%C2%BD}}%22},{%22id%22:%22~erlf%22,%22name%22:%22FS_3%22,%22matrix%22:%22{{%E2%88%9A%E2%85%94,-%E2%88%9A%E2%85%93},{%E2%88%9A%E2%85%93,%E2%88%9A%E2%85%94}}%22},{%22id%22:%22~95cq%22,%22name%22:%22FS_4%22,%22matrix%22:%22{{%E2%88%9A%C2%BE,-%C2%BD},{%C2%BD,%E2%88%9A%C2%BE}}%22}]}
     operation WState_Arbitrary_Iterative (qs : Qubit[]) : Unit is Adj {
@@ -425,7 +486,6 @@ namespace Quantum.Kata.Superposition {
         }
     }
 
-
     // solution based on generation for 2ᵏ and post-selection using measurements
     operation WState_Arbitrary_Postselect (qs : Qubit[]) : Unit {
         let N = Length(qs);
@@ -443,31 +503,21 @@ namespace Quantum.Kata.Superposition {
                 }
             }
 
-            if (P == N) {
-                // prepare as a power of 2 (previous task)
-                WState_PowerOfTwo_Reference(qs);
-            } else {
-                // allocate extra qubits
-                using (anc = Qubit[P - N]) {
-                    let all_qubits = qs + anc;
+            // allocate extra qubits (might be 0 qubits if N is a power of 2)
+            using (anc = Qubit[P - N]) {
+                repeat {
+                    // prepare state W_P on original + ancilla qubits
+                    WState_PowerOfTwo(qs + anc);
 
-                    repeat {
-                        // prepare state W_P on original + ancilla qubits
-                        WState_PowerOfTwo_Reference(all_qubits);
-
-                        // measure ancilla qubits; if all of the results are Zero, we get the right state on main qubits
-                        mutable allZeros = true;
-                        for (i in 0 .. (P - N) - 1) {
-                            if (not IsResultZero(M(anc[i]))) {
-                                set allZeros = false;
-                            }
+                    // measure extra qubits; if all of the results are Zero, we got the right state on main qubits
+                    mutable allZeros = true;
+                    for (i in 0 .. (P - N) - 1) {
+                        if (MResetZ(anc[i]) == One) {
+                            set allZeros = false;
                         }
                     }
-                    until (allZeros)
-                    fixup {
-                        ResetAll(anc);
-                    }
                 }
+                until (allZeros);
             }
         }
     }

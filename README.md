@@ -52,11 +52,15 @@ Each kata is a separate project that includes:
   Learn to represent multi-qubit systems.
 * **[Multi-qubit gates](./tutorials/MultiQubitGates/)**.
   Learn about the most common multi-qubit gates.
+* **[Random number generation](./tutorials/RandomNumberGeneration/)**.
+  Learn to generate random numbers using the principles of quantum computing.
 * **[Exploring Deutsch–Jozsa algorithm](./tutorials/ExploringDeutschJozsaAlgorithm/)**.
   Learn to implement classical functions and equivalent quantum oracles, and compare the quantum
   solution to the Deutsch–Jozsa problem to a classical one.
 * **[Exploring Grover's search algorithm](./tutorials/ExploringGroversAlgorithm/)**.
   Learn more about Grover's search algorithm, picking up where the [Grover's algorithm kata](./GroversAlgorithm/) left off.
+* **[Quantum classification](./tutorials/QuantumClassification/)**.
+  Learn about circuit-centric classifiers and the quantum machine learning library included in the QDK.
 
 ## List of Katas <a name="kata-topics" /> ##
 
@@ -91,6 +95,13 @@ Each kata is a separate project that includes:
 * **[Solving graph coloring problems using Grover's algorithm](./GraphColoring/)**.
   Continue the exploration of Grover's search algorithm, using graph coloring problems as an example.
 
+#### Tools and libraries/Building up to Shor's algorithm
+
+* **[Quantum Fourier transform](./QFT/)**.
+  Learn to implement quantum Fourier transform and to use it to perform simple state transformations.
+* **[Phase estimation](./PhaseEstimation/)**.
+  Learn about phase estimation algorithms.
+
 #### Entanglement games
 
 * **[CHSH game](./CHSHGame/)**.
@@ -108,18 +119,20 @@ Each kata is a separate project that includes:
 
 * **[BB84 protocol](./KeyDistribution_BB84/)**.
   Implement the BB84 key distribution algorithm.
-* **[Phase estimation](./PhaseEstimation/)**.
-  Learn about phase estimation algorithms.
 * **[Bit-flip error correcting code](./QEC_BitFlipCode/)**.
   Learn about a 3-qubit error correcting code for protecting against bit-flip errors.
-* **[Unitary Patterns*](./UnitaryPatterns/)**.
+* **[Distinguish Unitaries](./DistinguishUnitaries/)**.
+  Learn to distinguish unitaries by designing and performing experiments with them.
+* **[Unitary Patterns](./UnitaryPatterns/)**.
   Learn to implement unitaries with matrices that follow certain patterns of zero and non-zero elements.
 
 > For a Q# programming language quick reference sheet, see [Q# Language Quick Reference](./quickref/qsharp-quick-reference.pdf).
 
 ## Run the katas and tutorials online <a name="run-online" /> ##
 
-The Quantum Katas are now available as Jupyter Notebooks! See [index.ipynb](https://mybinder.org/v2/gh/Microsoft/QuantumKatas/master?filepath=index.ipynb) for the list of all katas and tutorials, and instructions for running them online.
+The Quantum Katas are now available as Jupyter Notebooks online! See [index.ipynb](https://mybinder.org/v2/gh/Microsoft/QuantumKatas/master?filepath=index.ipynb) for the list of all katas and tutorials, and instructions for running them online.
+
+> While running the Katas online is the easiest option to get started, if you want to save your progress and enjoy better performance, we recommend you to choose the local option. 
 
 ## Run the katas locally <a name="kata-locally" /> ##
 
@@ -161,19 +174,25 @@ If you don't have Git installed, download the katas from https://github.com/Micr
 
 The best way to run the katas as Jupyter Notebooks is to navigate to the root folder of the repository and to open `index.ipynb` using Jupyter:
 
-> ```bash
-> $ cd QuantumKatas/
-> $ jupyter notebook index.ipynb
-> ```
+```bash
+$ cd QuantumKatas/
+$ jupyter notebook index.ipynb
+```
 
 This will open the notebook that contains a list of all katas and tutorials, and you will be able to navigate to the one you want using links.
 
+> Note that this will start Jupyter Notebooks server in the same command line window you used to run the command. If you want to keep using that window for navigation, you can launch Jupyter Notebooks server in a new window using the following commands (on Windows):
+> ```bash
+> $ cd QuantumKatas/
+> $ start jupyter notebook index.ipynb
+> ```
+
 You can also open an individual notebook directly, but this might render internal links invalid:
 
-> ```bash
-> $ cd QuantumKatas/tutorials/ComplexArithmetic
-> $ jupyter notebook ComplexArithmetic.ipynb
-> ```
+```bash
+$ cd QuantumKatas/tutorials/ComplexArithmetic
+$ jupyter notebook ComplexArithmetic.ipynb
+```
 
 
 ### Run a kata as a Q# project <a name="kata-as-project" /> ###

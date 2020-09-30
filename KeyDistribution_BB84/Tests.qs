@@ -14,15 +14,16 @@ namespace Quantum.Kata.KeyDistribution {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Convert;
+    open Microsoft.Quantum.Random;
     
     
     //////////////////////////////////////////////////////////////////
     // Part I. Preparation
     //////////////////////////////////////////////////////////////////
 
-    operation T11_DiagonalPolarization_Test () : Unit {
+    operation T11_DiagonalBasis_Test () : Unit {
         for (i in 1 .. 5) {
-            AssertOperationsEqualReferenced(i, DiagonalPolarization, DiagonalPolarization_Reference);
+            AssertOperationsEqualReferenced(i, DiagonalBasis, DiagonalBasis_Reference);
         }
     }
 
@@ -30,8 +31,8 @@ namespace Quantum.Kata.KeyDistribution {
     operation T12_EqualSuperposition_Test () : Unit {
         using (q = Qubit()) {
             EqualSuperposition(q);
-            DumpMachine(());
-            AssertProb([PauliZ], [q], One, 0.5, "Measuring should produce 0 and 1 with 50/50 chance.", 1e-5);
+            DumpMachine();
+            AssertMeasurementProbability([PauliZ], [q], One, 0.5, "Measuring should produce 0 and 1 with 50/50 chance.", 1e-5);
             Reset(q);
         }
     }
@@ -86,7 +87,6 @@ namespace Quantum.Kata.KeyDistribution {
                 let result = MeasureBobsQubits(qs, bases);
                 Fact(N == Length(result), "The returned array should have the same length as the inputs");
                 Fact(BoolArrayAsInt(state) == BoolArrayAsInt(result), "Some of the measurements were done in the wrong basis");
-                ResetAll(qs);
             }
         }
     }
@@ -108,13 +108,26 @@ namespace Quantum.Kata.KeyDistribution {
 
     // ------------------------------------------------------
     operation T25_CheckKeysMatch_Test () : Unit {
-        for (i in 10 .. 30) {
-            let (key1, key2) = GenerateRandomState(i);
-            let threshold = RandomInt(50) + 50;
-            let expected = CheckKeysMatch_Reference(key1, key2, threshold);
-            let result = CheckKeysMatch(key1, key2, threshold);
+        // Hard-coded test to validate that the solution checks the right relation with error rate
+        mutable key1 = ConstantArray(10, false);
+        mutable key2 = key1 w/ 3 <- true;
+        mutable errorRate = 15;
+        mutable result = CheckKeysMatch(key1, key2, errorRate);
+        // 10% mismatch with 15% error rate should pass
+        Fact(result, $"Check for {key1} vs {key2} with errorRate {errorRate}% should return {true}, returned {result}");
 
-            Fact(expected == result, $"Check for {key1} vs {key2} with threshold {threshold}% should return {expected}, returned {result}");
+        set key2 w/= 5 <- true;
+        set result = CheckKeysMatch(key1, key2, errorRate);
+        // 20% mismatch with 15% error rate should fail
+        Fact(not result, $"Check for {key1} vs {key2} with errorRate {errorRate}% should return {false}, returned {result}");
+
+        for (i in 10 .. 30) {
+            set (key1, key2) = GenerateRandomState(i);
+            set errorRate = DrawRandomInt(0, 49);
+            let expected = CheckKeysMatch_Reference(key1, key2, errorRate);
+            set result = CheckKeysMatch(key1, key2, errorRate);
+
+            Fact(expected == result, $"Check for {key1} vs {key2} with errorRate {errorRate}% should return {expected}, returned {result}");
         }
     }
 

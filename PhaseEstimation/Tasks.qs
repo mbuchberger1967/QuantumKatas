@@ -45,8 +45,7 @@ namespace Quantum.Kata.PhaseEstimation {
     // Goal: 
     //      Prepare one of the eigenstates of Z gate (which are the same as eigenstates of S or T gates):
     //      eigenstate |0⟩ if state = 0, or eigenstate |1⟩ if state = 1.
-    operation Eigenstates_ZST (q : Qubit, state : Int) : Unit
-    is Adj {
+    operation Eigenstates_ZST (q : Qubit, state : Int) : Unit is Adj {
         Fact(state == 0 or state == 1, "state must ne 0 or 1");
 
         if (state == 1) {

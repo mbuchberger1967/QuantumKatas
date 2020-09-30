@@ -46,7 +46,7 @@ namespace Quantum.Kata.CHSHGame {
 
     // Task 1.2. Alice and Bob's classical strategy
     // In this task you have to implement two functions, one for Alice's classical strategy and one for Bob's.
-    // Note that they are covered by one test, so you have to implement both before attemping the test.
+    // Note that they are covered by one test, so you have to implement both before attempting the test.
 
     // Input: Alice's starting bit (X).
     // Output: The bit that Alice should output (A) to maximize their chance of winning.
@@ -109,7 +109,8 @@ namespace Quantum.Kata.CHSHGame {
     //      2) Bob's qubit.
     // Goal:  Rotate the qubit π/8 radians around the Y axis in the given direction.
     operation RotateBobQubit (clockwise : Bool, qubit : Qubit) : Unit {
-        // Hint: Ry operation applies a rotation by a given angle in counterclockwise direction.
+        // Hint: Ry operation (rotation about the y axis) applies a rotation by a given angle 
+        // in counterclockwise direction.
         if (clockwise) {
             Ry(2.*-PI()/8., qubit);
         }

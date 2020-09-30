@@ -207,100 +207,26 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
         
     }
     
-    
+
     //////////////////////////////////////////////////////////////////
-    // Part II. Bernstein-Vazirani Algorithm
+    // Part II. Deutsch-Jozsa Algorithm
     //////////////////////////////////////////////////////////////////
-    
-    // Task 2.1. State preparation for Bernstein-Vazirani algorithm
+
+    // Task 2.1. State preparation for Deutsch-Jozsa algorithm
     // Inputs:
     //      1) N qubits in |0⟩ state (query register)
     //      2) a qubit in |0⟩ state (answer register)
     // Goal:
-    //      1) create an equal superposition of all basis vectors from |0...0⟩ to |1...1⟩ on query register
-    //         (i.e. state (|0...0⟩ + ... + |1...1⟩) / sqrt(2^N) )
-    //      2) create |-⟩ state (|-⟩ = (|0⟩ - |1⟩) / sqrt(2)) on answer register
-    operation BV_StatePrep (query : Qubit[], answer : Qubit) : Unit
-    is Adj {
-            ApplyToEachA(H, query);
-            X(answer);
-            H(answer);
+    //      1) prepare an equal superposition of all basis vectors from |0...0⟩ to |1...1⟩ on query register
+    //         (i.e., state (|0...0⟩ + ... + |1...1⟩) / sqrt(2^N) )
+    //      2) prepare |-⟩ state (|-⟩ = (|0⟩ - |1⟩) / sqrt(2)) on answer register
+    operation DJ_StatePrep (query : Qubit[], answer : Qubit) : Unit is Adj {
+        ApplyToEachA(H, query);
+        X(answer);
+        H(answer);
     }
     
-    
-    // Task 2.2. Bernstein-Vazirani algorithm implementation
-    // Inputs:
-    //      1) the number of qubits in the input register N for the function f
-    //      2) a quantum operation which implements the oracle |x⟩|y⟩ -> |x⟩|y ⊕ f(x)⟩, where
-    //         x is an N-qubit input register, y is a 1-qubit answer register, and f is a Boolean function
-    // You are guaranteed that the function f implemented by the oracle is a scalar product function
-    // (can be represented as f(x₀, ..., xₙ₋₁) = Σᵢ rᵢ xᵢ modulo 2 for some bit vector r = (r₀, ..., rₙ₋₁)).
-    // You have implemented the oracle implementing the scalar product function in task 1.5.
-    // Output:
-    //      A bit vector r reconstructed from the function
-    //
-    // Note: a trivial approach is to call the oracle N times:
-    //       |10...0⟩|0⟩ = |10...0⟩|r₀⟩, |010...0⟩|0⟩ = |010...0⟩|r₁⟩ and so on.
-    // Quantum computing allows to perform this task in just one call to the oracle; try to implement this algorithm.
-    operation BV_Algorithm (N : Int, Uf : ((Qubit[], Qubit) => Unit)) : Int[] {
-        
-        // Declare an Int array in which the result will be stored;
-        // the variable has to be mutable to allow updating it.
-        mutable r = new Int[N];
-        
-        using ((query, answer) = (Qubit[N], Qubit())) {
-            BV_StatePrep(query, answer);
-            Uf(query, answer);
-            Adjoint BV_StatePrep(query, answer);
-
-            let result = Measure(ConstantArray(N, PauliZ), query);
-
-            for (i in 0..N-1) {
-                set r w/= i <- ResultArrayAsInt([M(query[i])]);
-            }
-           
-           ResetAll(query);
-        }
-
-        return r;
-    }
-    
-    
-    // Task 2.3. Testing Bernstein-Vazirani algorithm
-    // Goal: use your implementation of Bernstein-Vazirani algorithm from task 2.2 to figure out
-    // what bit vector the scalar product function oracle from task 1.5 was using.
-    // As a reminder, this oracle creates an operation f(x) = Σᵢ 𝑟ᵢ 𝑥ᵢ modulo 2 for a given bit vector r,
-    // and Bernstein-Vazirani algorithm recovers that bit vector given the operation.
-    operation BV_Test () : Unit {
-        // Hint: use Oracle_ProductFunction to implement the scalar product function oracle passed to BV_Algorithm.
-        // Since Oracle_ProductFunction takes three arguments (Qubit[], Qubit and Int[]), 
-        // and the operation passed to BV_Algorithm must take two arguments (Qubit[] and Qubit), 
-        // you need to use partial application to fix the third argument (a specific value of a bit vector). 
-        // 
-        // You might want to use something like the following:
-        // let oracle = Oracle_ProductFunction(_, _, [...your bit vector here...]);
-
-        // Hint: use AllEqualityFactI function to assert that the return value of BV_Algorithm operation 
-        // matches the expected value (i.e. the bit vector passed to Oracle_ProductFunction).
-
-        // BV_Test appears in the list of unit tests for the solution; run it to verify your code.
-
-        let N=4;
-        let bits=[1,1,0,1];
-
-        let secret = BV_Algorithm(N, Oracle_ProductFunction(_, _, bits));
-
-        AllEqualityFactI(secret, bits, $"returned bit string {secret} dosent match {bits}!");
-
-        Message($"secret bit string is {secret}");
-    }
-    
-    
-    //////////////////////////////////////////////////////////////////
-    // Part III. Deutsch-Jozsa Algorithm
-    //////////////////////////////////////////////////////////////////
-    
-    // Task 3.1. Deutsch-Jozsa algorithm implementation
+    // Task 2.2. Deutsch-Jozsa algorithm implementation
     // Inputs:
     //      1) the number of qubits in the input register N for the function f
     //      2) a quantum operation which implements the oracle |x⟩|y⟩ -> |x⟩|y ⊕ f(x)⟩, where
@@ -321,33 +247,114 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
         // this variable has to be mutable to allow updating it.
         mutable isConstantFunction = true;
         
-        // Hint: Even though Deutsch-Jozsa algorithm operates on a wider class of functions
-        // than Bernstein-Vazirani (i.e. functions which can not be represented as a scalar product, such as f(x) = 1),
-        // it can be expressed as running Bernstein-Vazirani algorithm
-        // and then post-processing the return value classically.
+        using ((query, answer) = (Qubit[N], Qubit())) {
+            DJ_StatePrep(query, answer);
+            Uf(query, answer);
+            Adjoint DJ_StatePrep(query, answer);
 
-        // for f(x) = 0 -> result is |0>, for f(x)=1 -> result = -|0>
-        // so measurement is Zero
-        
-        let result = BV_Algorithm(N, Uf);
-        for (i in 0..N-1) {
-            set isConstantFunction = isConstantFunction and result[i]==0;
+            let result = Measure(ConstantArray(N, PauliZ), query);
+
+            for (i in 0 .. N - 1) {
+                if (M(query[i]) != Zero) {
+                    set isConstantFunction = false;
+                }
+            }
+           
+           ResetAll(query);
         }
 
         return isConstantFunction;
     }
     
     
-    // Task 3.2. Testing Deutsch-Jozsa algorithm
+    // Task 2.3. Testing Deutsch-Jozsa algorithm
     // Goal: use your implementation of Deutsch-Jozsa algorithm from task 3.1 to test
     // each of the oracles you've implemented in part I for being constant or balanced.
     operation DJ_Test () : Unit {
+        // Hint: use Oracle_ProductFunction to implement the scalar product function oracle passed to DJ_Algorithm.
+        // Since Oracle_ProductFunction takes three arguments (Qubit[], Qubit and Int[]), 
+        // and the operation passed to DJ_Algorithm must take two arguments (Qubit[] and Qubit), 
+        // you need to use partial application to fix the third argument (a specific value of a bit vector). 
+        // 
+        // You might want to use something like the following:
+        // let oracle = Oracle_ProductFunction(_, _, [...your bit vector here...]);
+
+        // Hint: use AllEqualityFactI function to assert that the return value of DJ_Algorithm operation 
+        // matches the expected value (i.e. the bit vector passed to Oracle_ProductFunction).
+
+        // DJ_Test appears in the list of unit tests for the solution; run it to verify your code.
+
+        let N=4;
+        let bits=[1,1,0,1];
+
+        let secret = BV_Algorithm(N, Oracle_ProductFunction(_, _, bits));
+
+        AllEqualityFactI(secret, bits, $"returned bit string {secret} dosent match {bits}!");
+
+        Message($"secret bit string is {secret}");
+    }
+    
+
+    //////////////////////////////////////////////////////////////////
+    // Part III. Bernstein-Vazirani Algorithm
+    //////////////////////////////////////////////////////////////////    
+    
+    // Task 3.2. Bernstein-Vazirani algorithm implementation
+    // Inputs:
+    //      1) the number of qubits in the input register N for the function f
+    //      2) a quantum operation which implements the oracle |x⟩|y⟩ -> |x⟩|y ⊕ f(x)⟩, where
+    //         x is an N-qubit input register, y is a 1-qubit answer register, and f is a Boolean function
+    // You are guaranteed that the function f implemented by the oracle is a scalar product function
+    // (can be represented as f(x₀, ..., xₙ₋₁) = Σᵢ rᵢ xᵢ modulo 2 for some bit vector r = (r₀, ..., rₙ₋₁)).
+    // You have implemented the oracle implementing the scalar product function in task 1.5.
+    // Output:
+    //      A bit vector r reconstructed from the function
+    //
+    // Note: a trivial approach is to call the oracle N times:
+    //       |10...0⟩|0⟩ = |10...0⟩|r₀⟩, |010...0⟩|0⟩ = |010...0⟩|r₁⟩ and so on.
+    // Quantum computing allows to perform this task in just one call to the oracle; try to implement this algorithm.
+    operation BV_Algorithm (N : Int, Uf : ((Qubit[], Qubit) => Unit)) : Int[] {
+      
+        // allocate N qubits for input register and 1 qubit for output
+        using ((x, y) = (Qubit[N], Qubit())) {
+            
+            // prepare qubits in the right state
+            DJ_StatePrep_Reference(x, y);
+            
+            // apply oracle
+            Uf(x, y);
+            
+            // apply Hadamard to each qubit of the input register
+            ApplyToEach(H, x);
+            
+            // measure all qubits of the input register;
+            // the result of each measurement is converted to an Int
+            mutable r = new Int[N];
+            for (i in 0 .. N - 1) {
+                if (M(x[i]) != Zero) {
+                    set r w/= i <- 1;
+                }
+            }
+            
+            // before releasing the qubits make sure they are all in |0⟩ state
+            Reset(y);
+            return r;
+        }
+    }
+    
+    
+    // Task 3.3. Testing Bernstein-Vazirani algorithm
+    // Goal: use your implementation of Bernstein-Vazirani algorithm from task 2.2 to figure out
+    // what bit vector the scalar product function oracle from task 1.5 was using.
+    // As a reminder, this oracle creates an operation f(x) = Σᵢ 𝑟ᵢ 𝑥ᵢ modulo 2 for a given bit vector r,
+    // and Bernstein-Vazirani algorithm recovers that bit vector given the operation.
+    operation BV_Test () : Unit {
         // Hint: you will need to use partial application to test oracles such as Oracle_Kth_Qubit and Oracle_ProductFunction;
         // see task 2.3 for a description of how to do that.
 
         // Hint: use the Fact function to assert that the return value of DJ_Algorithm operation matches the expected value
 
-        // DJ_Test appears in the list of unit tests for the solution; run it to verify your code.
+        // BV_Test appears in the list of unit tests for the solution; run it to verify your code.
 
         mutable r= false;
 
@@ -376,7 +383,7 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
         Fact(not r, "Oracle_ProductWithNegationFunction not identified as constant function");
     }
     
-    
+
     //////////////////////////////////////////////////////////////////
     // Part IV. Come up with your own algorithm!
     //////////////////////////////////////////////////////////////////
@@ -427,3 +434,4 @@ namespace Quantum.Kata.DeutschJozsaAlgorithm {
         return r;
     }
 }
+

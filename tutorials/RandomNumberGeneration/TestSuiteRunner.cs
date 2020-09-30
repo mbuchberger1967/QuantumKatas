@@ -7,13 +7,15 @@
 // The tasks themselves can be found in Tasks.qs file.
 //////////////////////////////////////////////////////////////////////
 
-using Microsoft.Quantum.Simulation.XUnit;
-using Xunit.Abstractions;
 using System.Diagnostics;
 
 using Microsoft.Quantum.Katas;
+using Microsoft.Quantum.Simulation.XUnit;
 
-namespace Quantum.Kata.Measurements
+using Xunit.Abstractions;
+
+
+namespace Quantum.Kata.RandomNumberGeneration
 {
     public class TestSuiteRunner
     {
@@ -26,9 +28,9 @@ namespace Quantum.Kata.Measurements
 
         /// <summary>
         /// This driver will run all Q# tests (operations named "...Test") 
-        /// that belong to namespace Quantum.Kata.Measurements.
+        /// that belong to namespace Quantum.Kata.RandomNumberGeneration.
         /// </summary>
-        [OperationDriver(TestNamespace = "Quantum.Kata.Measurements")]
+        [OperationDriver(TestNamespace = "Quantum.Kata.RandomNumberGeneration")]
         public void TestTarget(TestOperation op)
         {
             using (var sim = new CounterSimulator())
