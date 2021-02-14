@@ -3,13 +3,10 @@
 
 namespace Quantum.Kata.GraphColoring {
 
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Measurement;
+    open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Canon;
-    open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Arrays;
 
     //////////////////////////////////////////////////////////////////
     // Welcome!
@@ -43,8 +40,7 @@ namespace Quantum.Kata.GraphColoring {
     //       Use little-endian encoding (i.e., the least significant bit should be stored in the first qubit).
     // Example: for N = 2 and C = 2 the state should be |01⟩.
     operation InitializeColor (C : Int, register : Qubit[]) : Unit is Adj {
-        let binaryC = IntAsBoolArray(C, Length(register));
-        ApplyPauliFromBitString(PauliX, true, binaryC, register);
+        // ...
     }
 
 
@@ -54,7 +50,8 @@ namespace Quantum.Kata.GraphColoring {
     //         The operation should not change the state of the qubits.
     // Example: for N = 2 and the qubits in the state |01⟩ return 2 (and keep the qubits in |01⟩).
     operation MeasureColor (register : Qubit[]) : Int {
-        return ResultArrayAsInt(MultiM(register));
+        // ...
+        return -1;
     }
 
 
@@ -67,20 +64,8 @@ namespace Quantum.Kata.GraphColoring {
     //         The operation should not change the state of the qubits.
     // Example: for N = 2, K = 2 and the qubits in the state |0110⟩ return [2, 1].
     operation MeasureColoring (K : Int, register : Qubit[]) : Int[] {
-
-        let N= Length(register)/K;
-
-        // straight forward implementation
-//        mutable result = new Int[K];
-
-//        for(i in 0..K-1) {
-//            set result w/= i <- MeasureColor(register[i*N..i*N+N-1]);
-//        }
-//        return result;
-
-        // alternative
-        let colorPartitions = Partitioned(ConstantArray(K-1,N), register);
-        return ForEach(MeasureColor, colorPartitions);
+        // ...
+        return new Int[0];
     }
 
 
@@ -94,59 +79,14 @@ namespace Quantum.Kata.GraphColoring {
     //       Leave the query register in the same state it started in.
     // In this task you are allowed to allocate extra qubits.
     operation ColorEqualityOracle_2bit (c0 : Qubit[], c1 : Qubit[], target : Qubit) : Unit is Adj+Ctl {
-        
-        // if c0 + c1 = |00> both registers are equal
-        // using (ancilla = Qubit[Length(c0)]) {
-        //     within {
-        //         for (i in 0..Length(ancilla)-1) {
-        //             CNOT(c0[i], ancilla[i]);
-        //             CNOT(c1[i], ancilla[i]);
-        //         }
-        //     }
-        //     apply {
-        //         (ControlledOnInt(0, X)) (ancilla, target);
-        //     }
-        // }
-
-        // Small case solution with no extra qubits allocated:
-        // iterate over all bit strings of length 2, and do a controlled X on the target qubit
-        // with control qubits c0 and c1 in states described by each of these bit strings.
-        for (color in 0..3) {
-            let binaryColor = IntAsBoolArray(color, 2);
-            (ControlledOnBitString(binaryColor + binaryColor, X))(c0 + c1, target);
-        }
-
+        // ...
     }
 
 
     // Task 1.5. N-bit color equality oracle (no extra qubits)
     // This task is the same as task 1.4, but in this task you are NOT allowed to allocate extra qubits.
     operation ColorEqualityOracle_Nbit (c0 : Qubit[], c1 : Qubit[], target : Qubit) : Unit is Adj+Ctl {
-        // WITH ANCILLA BITS
-        // if c0 + c1 = |0...0> both registers are equal
-        // using (ancilla = Qubit[Length(c0)]) {
-        //     within {
-        //         for (i in 0..Length(ancilla)-1) {
-        //             CNOT(c0[i], ancilla[i]);
-        //             CNOT(c1[i], ancilla[i]);
-        //         }
-        //     }
-        //     apply {
-        //         (ControlledOnInt(0, X)) (ancilla, target);
-        //     }
-        // }
-
-        // NO ANCILLA BITS
-        within{
-            for ((q0, q1) in Zip(c0, c1)) {
-                // compute XOR of q0 and q1 in place (storing it in q1)
-                CNOT(q0, q1);
-            }
-        }
-        apply {
-            // if all XORs are 0, the bit strings are equal
-            (ControlledOnInt(0, X))(c1, target);
-        }
+        // ...
     }
 
 
@@ -173,11 +113,8 @@ namespace Quantum.Kata.GraphColoring {
         // You don't need to modify them. Feel free to remove them, this won't cause your code to fail.
         Fact(Length(colors) == V, $"The vertex coloring must contain exactly {V} elements, and it contained {Length(colors)}.");
 
-        for ((start, end) in edges) {
-            if (colors[start] == colors[end]) {
-                return false;
-            }
-        }
+        // ...
+
         return true;
     }
 
@@ -198,26 +135,7 @@ namespace Quantum.Kata.GraphColoring {
     // Each color in colorsRegister is represented as a 2-bit integer in little-endian format.
     // See task 1.3 for a more detailed description of color assignments.
     operation VertexColoringOracle (V : Int, edges : (Int, Int)[], colorsRegister : Qubit[], target : Qubit) : Unit is Adj+Ctl {
-
-        let nEdges = Length(edges);
-
-        using (ancilla=Qubit[nEdges]){
-            for (i in 0..nEdges-1) {
-                let (start, end) = edges[i];
-                // Check that endpoints of the edge have different colors:
-                // apply ColorEqualityOracle_Nbit_Reference oracle; if the colors are the same the result will be 1, indicating a conflict
-                ColorEqualityOracle_Nbit(colorsRegister[start*2..start*2+1], colorsRegister[end*2..end*2+1], ancilla[i]); 
-            }
-            
-            // If there are no conflicts (all qubits are in 0 state), the vertex coloring is valid
-            (ControlledOnInt(0, X))(ancilla, target);
-            
-            // uncompute
-            for (i in 0..nEdges-1) {
-                let (start, end) = edges[i];
-                Adjoint ColorEqualityOracle_Nbit(colorsRegister[start*2..start*2+1], colorsRegister[end*2..end*2+1], ancilla[i]); 
-            }
-        }
+        // ...
     }
 
 
@@ -228,38 +146,7 @@ namespace Quantum.Kata.GraphColoring {
     //
     // Output: A valid vertex coloring for the graph, in a format used in task 2.1.
     operation GroversAlgorithm (V : Int, oracle : ((Qubit[], Qubit) => Unit is Adj)) : Int[] {
-        
-        mutable coloring = new Int[V];
-
-        using ((register, output) = (Qubit[V*2], Qubit())) {
-
-            mutable iterations = 1;
-            mutable correct = false;
-
-            repeat {
-                GroversAlgorithm_Loop(register, oracle, iterations);
-                let result = MultiM(register);
-                // check if result is ok
-                oracle(register, output);
-                if ( MResetZ(output)== One) {
-                    set correct = true;
-                    // read coloring
-                    set coloring = MeasureColoring(V, register);
-                }
-                ResetAll(register);
-            }
-            until (iterations > 100 or correct )
-            fixup {
-                set iterations += 1;
-            }
-            if (not correct) {
-                fail "Failed to find a coloring";
-            }
-            else {
-                Message($"found correct answer in {iterations} iterations");
-            }
-
-        }
-        return coloring;
+        // ...
+        return new Int[V];
     }
 }

@@ -38,7 +38,7 @@ namespace Quantum.Kata.QFT {
     //        1/sqrt(2) ((x₀ + x₁)|0⟩ + (x₀ - x₁)|1⟩).
     // In other words, transform a basis state |j⟩ into a state 1/sqrt(2) (|0⟩ + exp(2πi·j/2)|1⟩).
     operation OneQubitQFT (q : Qubit) : Unit is Adj+Ctl {
-        H(q);
+        // ...
     }
 
 
@@ -50,28 +50,7 @@ namespace Quantum.Kata.QFT {
     // Note: Be careful about not introducing an extra global phase! 
     //       This is going to be important in the later tasks.
     operation Rotation (q : Qubit, k : Int) : Unit is Adj+Ctl {
-
-        let theta = 2.*PI()/IntAsDouble(PowI(2, k));
-
-        // R1 rotates by theta only the |1> component
-//        R1(theta, q);
-        R1Frac(2, k, q);
-
-        // R rotates by theta/2 over |0> and |1> component -> 
-        // rotate theta/2 with PauliZ (rotates |0> by theta/2 and |1> by -theta/2), then rotate -theta/2 with PauliI (rotates |0> by -theta/2, and |1> by -theta/2)
-        // in total rotates |0> by zero, and |1> by theta
-//        R(PauliZ, theta, q);
-//        R(PauliI, -theta, q);
-
-        // RFrac uses different signs then R, and we need to pass in k+1, or n=1, to adjust the angle (R uses theta/2)
-//        RFrac(PauliZ, -2, k+1, q);
-//        RFrac(PauliI, 2, k+1, q);
-
-        // ExpFrac is analog to RFrac
-//        ExpFrac([PauliZ], -2, k+1, [q]);
-//        ExpFrac([PauliI], 2, k+1, [q]);
-
-//        DumpMachine(());
+        // ...
     }
 
 
@@ -83,11 +62,7 @@ namespace Quantum.Kata.QFT {
     // where 0.j₁j₂...jₙ is a binary fraction, similar to decimal fractions:
     //       0.j₁j₂...jₙ = j₁ / 2¹ + j₂ / 2² + ... + jₙ / 2ⁿ.
     operation BinaryFractionClassical (q : Qubit, j : Int[]) : Unit is Adj+Ctl {
-        for(i in 1 .. Length(j)) {
-            if (j[i-1] == 1) {
-                Rotation(q, i);
-            }
-        }
+        // ...
     }
     
 
@@ -102,11 +77,7 @@ namespace Quantum.Kata.QFT {
     // Note: The register of qubits can be in superposition as well; 
     //       the behavior in this case is defined by behavior on the basis states and the linearity of unitary transformations.
     operation BinaryFractionQuantum (q : Qubit, jRegister : Qubit[]) : Unit is Adj+Ctl {
-        
-        for(i in 1 .. Length(jRegister)) {
-            Controlled Rotation([jRegister[i-1]], (q, i));
-        }
-
+        // ...
     }
 
 
@@ -119,12 +90,7 @@ namespace Quantum.Kata.QFT {
     //       the behavior in this case is defined by behavior on the basis states and the linearity of unitary transformations.
     // Hint: This task is very similar to task 1.4, but the digit j₁ is encoded in-place, using task 1.1.
     operation BinaryFractionQuantumInPlace (register : Qubit[]) : Unit is Adj+Ctl {
-
-        OneQubitQFT(register[0]);
-
-        for(i in 2 .. Length(register)) {
-            Controlled Rotation([register[i-1]], (register[0], i));
-        }
+        // ...
     }
 
 
@@ -246,5 +212,34 @@ namespace Quantum.Kata.QFT {
     operation Frequency (register : Qubit[]) : Int {
         // ...
         return -1;
+    }
+
+
+    //////////////////////////////////////////////////////////////////
+    // Part III. Powers and roots of the QFT
+    //////////////////////////////////////////////////////////////////
+    
+    // Task 3.1. Implement powers of the QFT
+    // Inputs:
+    //      1) A register of n qubits in an arbitrary state.
+    //      2) An integer P (0 ≤ P ≤ 2²⁰ - 1).
+    // 
+    // Goal: Transform state |x⟩ into state QFTᴾ |x⟩, 
+    //       where QFT is the quantum Fourier transform implemented in part I.
+    // Note: Your solution has to run fast for any P in the given range!
+    operation QFTPower (P : Int, inputRegister : Qubit[]) : Unit is Adj+Ctl {
+        // ...
+    }
+
+
+    // Task 3.2. Implement roots of the QFT
+    // Inputs:
+    //      1) A register of n qubits in an arbitrary state.
+    //      2) An integer P (2 ≤ P ≤ 8).
+    // Goal: Transform state |x⟩ into state V |x⟩, where Vᴾ = QFT.
+    //       In other words, implement a P-th root of the QFT.
+    //       You can implement the required unitary up to a global phase.
+    operation QFTRoot (P : Int, inputRegister : Qubit[]) : Unit is Adj+Ctl {
+        // ...
     }
 }

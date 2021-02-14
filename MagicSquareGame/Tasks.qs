@@ -6,9 +6,7 @@ namespace Quantum.Kata.MagicSquareGame {
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Measurement;
-    open Microsoft.Quantum.Convert;
+    open Microsoft.Quantum.Diagnostics;
 
     //////////////////////////////////////////////////////////////////
     // Welcome!
@@ -39,32 +37,28 @@ namespace Quantum.Kata.MagicSquareGame {
     // Part I. Classical Magic Square Game
     //////////////////////////////////////////////////////////////////
 
-    // Task 1.1. Validate Alice and Bob's moves
-    // In this task you have to implement two functions, one for validating Alice's move and one for validating Bob's move.
-    // Note that they are covered by one test, so you have to implement both before attempting the test.
+    // Task 1.1.1. Validate Alice's move
+    // In this task you have to implement function for validating Alice's move.
 
     // Input: The signs Alice chose for each cell in her row,
     //        represented as an Int array of length 3.
     // Output: True if Alice's move is valid (every cell is either +1 or -1 and 
     //         the array has an even number of minus signs), and false otherwise.
     function ValidAliceMove (cells : Int[]) : Bool {
-        return All(CheckPlusOrMinusOne, cells) and Fold(Multiply, 1, cells)==1;
+        // ...
+        fail "Validating Alice's move in task 1.1.1 not implemented yet";
     }
+
+    // Task 1.1.2. Validate Bob's move
+    // In this task you have to implement function for validating Bob's move.
 
     // Input: The signs Bob chose for each cell in his column,
     //        represented as an Int array of length 3.
     // Output: True if Bob's move is valid (every cell is either +1 or -1 and
     //         the array has an odd number of minus signs), and false otherwise.
     function ValidBobMove (cells : Int[]) : Bool {
-        return All(CheckPlusOrMinusOne, cells) and Fold(Multiply, 1, cells)==-1;
-    }
-
-    function CheckPlusOrMinusOne(number : Int) : Bool {
-        return AbsI(number) == 1;
-    }
-
-    function Multiply(state: Int, number : Int) : Int {
-        return state * number;
+        // ...
+        fail "Validating Bob's move in task 1.1.2 not implemented yet";
     }
 
 
@@ -77,8 +71,8 @@ namespace Quantum.Kata.MagicSquareGame {
     //     they chose the same sign in the cell on the intersection of Alice's row and Bob's column),
     //     and false otherwise.
     function WinCondition (rowIndex : Int, columnIndex : Int, row : Int[], column : Int[]) : Bool {
-        
-        return ValidAliceMove(row) and ValidBobMove(column) and (row[columnIndex] == column[rowIndex]);
+        // ...
+        fail "Task 1.2 not implemented yet";
     }
 
 
@@ -91,20 +85,16 @@ namespace Quantum.Kata.MagicSquareGame {
     // Output: The signs Alice should place in her row (as an Int array of length 3).
     //         +1 indicates plus sign, -1 - minus sign.
     function AliceClassical (rowIndex : Int) : Int[] {
-        let rows =  [[1, 1, 1], 
-                     [1, -1, -1], 
-                     [-1, 1, -1]];
-        return rows[rowIndex];
+        // ...
+        fail "Alice's strategy in task 1.3 not implemented yet";
     }
 
     // Input:  The index of Bob's column.
     // Output: The signs Bob should place in his column (as an Int array of length 3).
     //         +1 indicates plus sign, -1 - minus sign.
     function BobClassical (columnIndex : Int) : Int[] {
-        let columns =  [[1, 1, -1], 
-                        [1, -1, 1], 
-                        [1, -1, 1]];
-        return columns[columnIndex];
+        // ...
+        fail "Bob's strategy in task 1.3 not implemented yet";
     }
 
 
@@ -124,24 +114,8 @@ namespace Quantum.Kata.MagicSquareGame {
     //     where |ψ⟩₀ and |ψ⟩₁ are Alice's qubits and |ψ⟩₂ and |ψ⟩₃ are Bob's qubits.
     operation CreateEntangledState (qs : Qubit[]) : Unit {
         // Hint: Can you represent this state as a combination of Bell pairs?
-        //
-        // let's ingvestigate bit 0 and 2, they are not entangled with bit 1 and 3;
-        // |0⟩₀⊗|0⟩₂ --H--CNOT--> ((|0⟩₀ ⊗ |0⟩₂ + |1⟩₀ ⊗ |1⟩₂) / sqrt(2))
-        // with |0> = (|+⟩ + |-⟩) / sqrt(2), |1> = (|+⟩ - |-⟩) / sqrt(2)
-        // you get:
-        // ((((|+⟩₀ + |-⟩₀) / sqrt(2)) ⊗ ((|+⟩₂ + |-⟩₂) / sqrt(2))) + (((|+⟩₀ - |-⟩₀) / sqrt(2)) ⊗ ((|+⟩₂ - |-⟩₂) / sqrt(2)))) / sqrt(2) = 
-        // [1/2 ((|+⟩₀ + |-⟩₀) ⊗ (|+⟩₂ + |-⟩₂) + (|+⟩₀ - |-⟩₀) ⊗ (|+⟩₂ - |-⟩₂))] / sqrt(2) =
-        // [1/2 (|+⟩₀|+⟩₂ + |+⟩₀|-⟩₂ + |-⟩₀|+⟩₂ + |-⟩₀|-⟩₂ +  + |+⟩₀|+⟩₂ - |+⟩₀|-⟩₂ - |-⟩₀|+⟩₂ + |-⟩₀|-⟩₂) ] / sqrt(2) =
-        // [1/2 (2 |+⟩₀|+⟩₂ + 2 |-⟩₀|-⟩₂) ] / sqrt(2) = 
-        // (|+⟩₀ ⊗ |+⟩₂ + |-⟩₀ ⊗|-⟩₂) / sqrt(2)
-        //
-        // Analog for bits 1 and 3.
- 
-
-        for ( i in 0..1) {
-            H(qs[i]);
-            CNOT(qs[i], qs[i+2]);
-        }
+        // ...
+        fail "Task 2.1 not implemented yet";
     }
 
 
@@ -158,11 +132,8 @@ namespace Quantum.Kata.MagicSquareGame {
     // Note that different sources that describe Mermin-Peres game give different magic squares.
     // We recommend you to pick one source and follow it throughout the rest of the tasks in this kata.
     function GetMagicObservables (rowIndex : Int, columnIndex : Int) : (Int, Pauli[]) {
-        let magicSquare = [[(+1, [PauliX, PauliX]), (+1, [PauliX, PauliI]), (+1, [PauliI, PauliX])], 
-                           [(+1, [PauliY, PauliY]), (-1, [PauliX, PauliZ]), (-1, [PauliZ, PauliX])], 
-                           [(+1, [PauliZ, PauliZ]), (+1, [PauliI, PauliZ]), (+1, [PauliZ, PauliI])] ];
-        
-        return magicSquare[rowIndex][columnIndex];
+        // ...
+        fail "Task 2.2 not implemented yet";
     }
 
 
@@ -175,12 +146,8 @@ namespace Quantum.Kata.MagicSquareGame {
     // For example, if the given tuple is (-1, [PauliX, PauliY]), you have to 
     // apply X to the first qubit, Y to the second qubit, and a global phase of -1 to the two-qubit state.
     operation ApplyMagicObservables (observable : (Int, Pauli[]), qs : Qubit[]) : Unit is Adj+Ctl {
-        let (sign, paulis) = observable;
-        ApplyPauli(paulis, qs);
-
-        if ( sign < 0 ) {
-            R(PauliI, 2.*PI(), qs[0]);
-        }
+        // ...
+        fail "Task 2.3 not implemented yet";
     }
 
 
@@ -194,10 +161,9 @@ namespace Quantum.Kata.MagicSquareGame {
     // The state of the qubits at the end of the operation does not matter.
     operation MeasureObservable (observable : (Int, Pauli[]), target : Qubit[]) : Result {
         // Hint: Use Measure operation to perform a joint measurement.
-        let (sign, paulis) = observable;
     
-        // joint measurement on the observables and convert to eigenvalue, multiply with sign, convert back to Result
-        return ((Measure(paulis, target) == Zero ? +1 | -1) * sign) == +1 ? Zero | One;
+        // ...
+        fail "Task 2.4 not implemented yet";
     }
 
 
@@ -215,13 +181,8 @@ namespace Quantum.Kata.MagicSquareGame {
 
         // Hint: Remember that you can allocate extra qubits.
 
-        using (anc = Qubit()) {
-            H(anc);
-            Controlled op([anc], target);
-            H(anc);
-
-            return MResetZ(anc);
-        }
+        // ...
+        fail "Task 2.5 not implemented yet";
     }
 
 
@@ -241,15 +202,8 @@ namespace Quantum.Kata.MagicSquareGame {
         // Hint: You can use either MeasureObservable from task 2.4, or ApplyMagicObservables and
         // MeasureOperator from tasks 2.3 and 2.5.
 
-        mutable cells = new Int[3];
-
-        for ( c in 0..2) {
-            let observable = GetMagicObservables(rowIndex, c);
-            let res = MeasureObservable(observable, qs);
-            set cells w/= c <- res == Zero ? +1 | -1;
-        }
-
-        return cells;
+        // ...
+        fail "Alice's strategy in task 2.6 not implemented yet";
     }
 
     // Input:
@@ -263,16 +217,8 @@ namespace Quantum.Kata.MagicSquareGame {
         // Hint: You can use either MeasureObservable from task 2.4, or ApplyMagicObservables and
         // MeasureOperator from tasks 2.3 and 2.5.
 
-        mutable cells = new Int[3];
-
-        for ( r in 0..2) {
-            let observable = GetMagicObservables(r, columnIndex);
-            let op = ApplyMagicObservables(observable, _);
-            let res = MeasureOperator(op, qs);
-            set cells w/= r <- res == Zero ? +1 | -1;
-        }
-
-        return cells;
+        // ...
+        fail "Bob's strategy in task 2.6 not implemented yet";
     }
 
 
@@ -287,14 +233,8 @@ namespace Quantum.Kata.MagicSquareGame {
     operation PlayQuantumMagicSquare (askAlice : (Qubit[] => Int[]), askBob : (Qubit[] => Int[])) : (Int[], Int[]) {
         // Hint: Use CreateEntangledState from task 2.1.
 
-        using (state = Qubit[4]) {
-            CreateEntangledState(state);
-            let a = askAlice([state[0], state[1]]);
-            let b = askBob([state[2], state[3]]);
-
-            ResetAll(state);
-            return (a, b);
-        }
+        // ...
+        fail "Task 2.7 not implemented yet";
     }
 
 
@@ -306,51 +246,21 @@ namespace Quantum.Kata.MagicSquareGame {
     // Goal:
     //    Use your classical and quantum magic square strategies from tasks 1.3 and 2.6 to
     //    verify their probabilities of winning. Can you make the classical strategy lose?
-    operation MagicSquare_Test () : Unit {
+    @Test("QuantumSimulator")
+    operation T31_MagicSquare () : Unit {
+        // Hint: You will need to use partial application to use your quantum strategies from task
+        // 2.6 with PlayQuantumMagicSquare from task 2.7.
 
-        // Classical strategies
-        mutable wins = 0;
-        for (i in 1..100) {
-            let rowIndex = RandomInt(3);
-            let columnIndex = RandomInt(3);
-            let (alice, bob) = (AliceClassical(rowIndex), BobClassical(columnIndex));
-            if (WinCondition(rowIndex, columnIndex, alice, bob)) {
-                set wins += 1;
-            }
-        }
-        Message($"classical strategy wins in {wins}% cases");
+        // Hint: Use WinCondition function from task 1.2 to check that Alice and Bob won the game.
 
+        // Hint: Use the DrawMagicSquare function in Tests.qs to see what the magic square looks
+        // like after Alice and Bob make their moves.
 
-        let (a, b) = (AliceClassical(2), BobClassical(2));
-        Message($"classical strategy wins on row/col = 2/2: " + BoolAsString(WinCondition(2, 2, a, b)));
+        // T31_MagicSquare appears in the list of unit tests for the solution; run it to verify
+        // your code.
 
-
-        set wins = 0;
-        for (i in 1..10) {
-            let rowIndex = RandomInt(3);
-            let columnIndex = RandomInt(3);
-
-            // Hint: You will need to use partial application to use your quantum strategies from task
-            // 2.6 with PlayQuantumMagicSquare from task 2.7.
-
-            let (aq, bq) = PlayQuantumMagicSquare(AliceQuantum(rowIndex, _), BobQuantum(columnIndex, _));
-
-            // Hint: Use WinCondition function from task 1.2 to check that Alice and Bob won the game.
-            if (WinCondition(rowIndex, columnIndex, aq, bq)) {
-                set wins += 1;
-                Message($"quantum strategy wins on row/col = {rowIndex}/{columnIndex}:");
-            }
-            else {
-                Message($"quantum strategy looses on row/col = {rowIndex}/{columnIndex}:");
-            }
-
-            // Hint: Use the DrawMagicSquare function in Tests.qs to see what the magic square looks
-            // like after Alice and Bob make their moves.
-            DrawMagicSquare(aq, rowIndex, bq, columnIndex);
-            Message("------------------------------------------------------------------------------");
-
-        }
-        Message($"quantum strategy wins in {wins/10*100}% cases");
+        // ...
+        fail "Task 3.1 not implemented yet";
     }
 
 }

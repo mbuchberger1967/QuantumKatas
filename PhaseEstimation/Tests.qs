@@ -31,8 +31,8 @@ namespace Quantum.Kata.PhaseEstimation {
         }
     }
 
-
-    operation T11_Eigenstates_ZST_Test () : Unit {
+    @Test("QuantumSimulator")
+    operation T11_Eigenstates_ZST () : Unit {
         for (state in 0 .. 1) {
             AssertEqualOnZeroState1(Eigenstates_ZST(_, state), Eigenstates_ZST_Reference(_, state));
         }
@@ -45,8 +45,8 @@ namespace Quantum.Kata.PhaseEstimation {
         op(qs[0]);
     }
 
-
-    operation T12_UnitaryPower_Test () : Unit {
+    @Test("QuantumSimulator")
+    operation T12_UnitaryPower () : Unit {
         for (U in [Z, S, T]) { 
             for (power in 1 .. 5) {
                 AssertOperationsEqualReferenced(1, ArrayWrapperOperation1(UnitaryPower(U, power), _), 
@@ -69,7 +69,8 @@ namespace Quantum.Kata.PhaseEstimation {
 
 
     // ------------------------------------------------------
-    operation T14_QPE_Test () : Unit {
+    @Test("QuantumSimulator")
+    operation T14_QPE () : Unit {
         EqualityWithinToleranceFact(QPE(Z, I, 1), 0.0, 0.25);
         EqualityWithinToleranceFact(QPE(Z, X, 1), 0.5, 0.25);
 
@@ -86,20 +87,21 @@ namespace Quantum.Kata.PhaseEstimation {
     //////////////////////////////////////////////////////////////////
     
     operation Test1BitPEOnOnePair(U : (Qubit => Unit is Adj + Ctl), P : (Qubit => Unit is Adj), expected : Int) : Unit {
-        ResetQubitCount();
         ResetOracleCallsCount();
 
-        let actual = SingleBitPE(U, P);
-        EqualityFactI(actual, expected, $"Unexpected return for ({U}, {P}): expected {expected}, got {actual}");
-        
-        let nq = GetMaxQubitCount();
-        EqualityFactI(nq, 2, $"You are allowed to allocate exactly 2 qubits, and you allocated {nq}");
+        within {
+            AllowAtMostNQubits(2, "You are allowed to allocate exactly 2 qubits");
+        } apply {
+            let actual = SingleBitPE(U, P);
+            EqualityFactI(actual, expected, $"Unexpected return for ({U}, {P}): expected {expected}, got {actual}");
+        }
         
         let nu = GetOracleCallsCount(Controlled U);
         EqualityFactI(nu, 1, $"You are allowed to call Controlled U exactly once, and you called it {nu} times");
     }
 
-    operation T21_SingleBitPE_Test () : Unit {
+    @Test("Microsoft.Quantum.Katas.CounterSimulator")
+    operation T21_SingleBitPE () : Unit {
         Test1BitPEOnOnePair(Z, I, +1);
         Test1BitPEOnOnePair(Z, X, -1);
         Test1BitPEOnOnePair(X, H, +1);
@@ -109,17 +111,16 @@ namespace Quantum.Kata.PhaseEstimation {
 
     // ------------------------------------------------------
     operation Test2BitPEOnOnePair(U : (Qubit => Unit is Adj + Ctl), P : (Qubit => Unit is Adj), expected : Double) : Unit {
-        ResetQubitCount();
-
-        let actual = TwoBitPE(U, P);
-        Message($"Measuring for ({U}, {P})...");
-        EqualityWithinToleranceFact(actual, expected, 0.001);
-        
-        let nq = GetMaxQubitCount();
-        EqualityFactI(nq, 2, $"You are allowed to allocate exactly 2 qubits, and you allocated {nq}");
+        within {
+            AllowAtMostNQubits(2, "You are allowed to allocate exactly 2 qubits");
+        } apply {
+            let actual = TwoBitPE(U, P);
+            EqualityWithinToleranceFact(actual, expected, 0.001);
+        }
     }
 
-    operation T22_TwoBitPE_Test () : Unit {
+    @Test("QuantumSimulator")
+    operation T22_TwoBitPE () : Unit {
         Test2BitPEOnOnePair(Z, I, 0.0);
         Test2BitPEOnOnePair(Z, X, 0.5);
         Test2BitPEOnOnePair(S, X, 0.25);
